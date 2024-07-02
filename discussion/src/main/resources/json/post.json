@@ -1,0 +1,15 @@
+{
+  "id": 1,
+  "content": "This is a sample post content.",
+  "likes": 10,
+  "comments": [
+    {
+      "id": 1,
+      "content": "Sample comment 1"
+    },
+    {
+      "id": 2,
+      "content": "Sample comment 2"
+    }
+  ]
+}
