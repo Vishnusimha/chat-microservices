@@ -3,8 +3,8 @@ package com.example.feed.controller;
 import com.example.feed.data.FeedDto;
 import com.example.feed.data.PostDto;
 import com.example.feed.data.User;
-import com.netflix.discovery.DiscoveryClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,7 +56,8 @@ public class FeedController {
 
         return ResponseEntity.ok(feeds);
     }
-//TODO  ResponseEntity<List<FeedDto>>  format
+
+    //TODO  ResponseEntity<List<FeedDto>>  format
     @GetMapping("user/{userName}")
     public ResponseEntity<List<FeedDto>> getPostsOfUserByName(@PathVariable String userName) {
 //        User user = webClientBuilder.build().get().uri("http://localhost:8081/users/" + userName).retrieve().bodyToMono(User.class).block();
