@@ -23,7 +23,15 @@ repositories {
 	mavenCentral()
 }
 
+extra["resilience4jVersion"] = "2.1.0" // Add the Spring Cloud version here
+extra["springCloudVersion"] = "2023.0.2" // Add the Spring Cloud version here
+
 dependencies {
+	implementation("io.github.resilience4j:resilience4j-spring-boot2:${property("resilience4jVersion")}")
+	implementation("io.github.resilience4j:resilience4j-circuitbreaker:${property("resilience4jVersion")}")
+	implementation("io.github.resilience4j:resilience4j-core:${property("resilience4jVersion")}")
+	implementation("org.springframework.boot:spring-boot-starter-aop")
+
 	implementation ("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
 	implementation ("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -36,7 +44,6 @@ dependencies {
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	testImplementation("org.mockito:mockito-core")
 }
-extra["springCloudVersion"] = "2023.0.2" // Add the Spring Cloud version here
 
 dependencyManagement {
 	imports {
