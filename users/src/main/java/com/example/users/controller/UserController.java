@@ -1,6 +1,7 @@
 package com.example.users.controller;
 
 import com.example.users.data.User;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -8,10 +9,30 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("users")
 public class UserController {
+
+    @Value("${user.test.string: This is Default Value for user.test.string}")
+    private String userTestString;
+
+    @Value("${external.list: four,five,six,four}")
+    private List<String> sampleList; // for getting values as a List from external config
+
+    @Value("#{${dbValues}}")
+    private Map<String, String> dbValues; // for getting values as a Map from external config
+
+    @GetMapping("/greeting")
+    public ResponseEntity<String> getGreeting() {
+        return ResponseEntity.ok(userTestString + dbValues);
+    }
+
+    @GetMapping("/sampleList")
+    public ResponseEntity<List<String>> getSampleList() {
+        return ResponseEntity.ok(sampleList);
+    }
 
     @GetMapping("/all")
     public List<User> getUsers() {
@@ -39,7 +60,7 @@ public class UserController {
                 .filter(usr -> usr.getUserId() == userId)
                 .findAny()
                 .orElse(new User(10, "Sample", "SampleVName"));
-        System.out.println("USER Details = " + user.getUserName() + user.getUserId() +user.getProfileName());
+        System.out.println("USER Details = " + user.getUserName() + user.getUserId() + user.getProfileName());
         return ResponseEntity.ok(user);
     }
 
