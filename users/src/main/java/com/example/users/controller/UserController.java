@@ -37,7 +37,6 @@ public class UserController {
     @GetMapping("/all")
     public List<User> getUsers() {
         System.out.println("GET ALL USERS ");
-
         return List.of(
                 new User(1, "vishnu", "vish"),
                 new User(2, "simha", "simba"),
@@ -47,7 +46,7 @@ public class UserController {
     }
 
     @GetMapping("user/{userId}")
-    public ResponseEntity<User> getUserWithUserId(@PathVariable int userId) {
+    public ResponseEntity<User> getUserWithUserId(@PathVariable("userId") int userId) {
         System.out.println("GET USER WITH USER ID = " + userId);
         List<User> userList = List.of(
                 new User(1, "vishnu", "vish"),
@@ -55,17 +54,20 @@ public class UserController {
                 new User(3, "sunith", "Sagar"),
                 new User(10, "Sample", "SampleVName")
         );
-
         User user = userList.stream()
                 .filter(usr -> usr.getUserId() == userId)
                 .findAny()
-                .orElse(new User(10, "Sample", "SampleVName"));
+                .orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
         System.out.println("USER Details = " + user.getUserName() + user.getUserId() + user.getProfileName());
         return ResponseEntity.ok(user);
     }
 
     @GetMapping("/{userName}")
-    public ResponseEntity<User> getUserWithUserName(@PathVariable String userName) {
+    public ResponseEntity<User> getUserWithUserName(@PathVariable("userName") String userName) {
         System.out.println("GET USER WITH USER userName = " + userName);
         List<User> userList = List.of(
                 new User(1, "vishnu", "vish"),
@@ -76,8 +78,11 @@ public class UserController {
         User user = userList.stream()
                 .filter(user1 -> user1.getUserName().equals(userName))
                 .findAny()
-                .orElse(new User(10, "Sample", "SampleVName"));
+                .orElse(null);
 
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(user);
     }
 }

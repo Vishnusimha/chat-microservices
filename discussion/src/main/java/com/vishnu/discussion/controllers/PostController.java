@@ -17,7 +17,7 @@ import java.util.List;
 @RequestMapping("/api/posts")
 public class PostController {
 
-    @Autowired // Dependency injection
+    @Autowired
     private PostService postService;
 
     @Autowired
@@ -25,23 +25,38 @@ public class PostController {
 
     @PostMapping("/create")
     public ResponseEntity<PostDto> createPost(@RequestBody PostDto postDto) {
-        return new ResponseEntity<>(postService.createPost(postDto), HttpStatus.CREATED);
+        if (postDto.getUserId() == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        PostDto created = postService.createPost(postDto);
+        if (created == null) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @PutMapping("/{postId}/update")
-    public ResponseEntity<PostDto> updatePost(@PathVariable Long postId, @RequestBody PostDto postDto) {
-        return ResponseEntity.ok(postService.updatePost(postId, postDto));
+    public ResponseEntity<PostDto> updatePost(@PathVariable("postId") Long postId, @RequestBody PostDto postDto) {
+        PostDto updated = postService.updatePost(postId, postDto);
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(updated);
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostDto> getPostById(@PathVariable Long postId) {
-        return ResponseEntity.ok(postService.getPostById(postId));
-//        return new ResponseEntity<>(postService.getPostById(postId), HttpStatus.OK);
+    public ResponseEntity<PostDto> getPostById(@PathVariable("postId") Long postId) {
+        PostDto post = postService.getPostById(postId);
+        if (post == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(post);
     }
 
-    @GetMapping("userId/{userId}")
-    public ResponseEntity<List<PostDto>> getPostByUserId(@PathVariable Long userId) {
-        return ResponseEntity.ok(postService.getPostsByUserId(userId));
+    @GetMapping("/userId/{userId}")
+    public ResponseEntity<List<PostDto>> getPostByUserId(@PathVariable("userId") Long userId) {
+        List<PostDto> posts = postService.getPostsByUserId(userId);
+        return ResponseEntity.ok(posts);
     }
 
     @GetMapping("/all")
@@ -50,19 +65,43 @@ public class PostController {
     }
 
     @DeleteMapping("/{postId}")
-    public ResponseEntity<?> deletePostById(@PathVariable Long postId) throws PostNotFoundException {
-        postService.deletePostById(postId);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> deletePostById(@PathVariable("postId") Long postId) {
+        try {
+            postService.deletePostById(postId);
+            return ResponseEntity.noContent().build();
+        } catch (PostNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PostMapping("/{postId}/comment")
-    public ResponseEntity<CommentDto> addComment(@PathVariable Long postId, @RequestBody CommentDto commentDto) {
-        return ResponseEntity.ok(commentService.addCommentToPost(postId, commentDto));
+    public ResponseEntity<CommentDto> addComment(@PathVariable("postId") Long postId,
+            @RequestBody CommentDto commentDto) {
+        try {
+            // Check if post exists before adding comment
+            PostDto post = postService.getPostById(postId);
+            if (post == null) {
+                return ResponseEntity.notFound().build();
+            }
+            CommentDto created = commentService.addCommentToPost(postId, commentDto);
+            if (created == null) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @DeleteMapping("/{postId}/comment/{commentId}")
-    public ResponseEntity<?> deleteComment(@PathVariable Long postId, @PathVariable Long commentId) throws CommentNotFoundException {
-        commentService.deleteCommentById(commentId);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> deleteComment(@PathVariable("postId") Long postId,
+            @PathVariable("commentId") Long commentId) {
+        try {
+            commentService.deleteCommentById(commentId);
+            return ResponseEntity.noContent().build();
+        } catch (CommentNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
