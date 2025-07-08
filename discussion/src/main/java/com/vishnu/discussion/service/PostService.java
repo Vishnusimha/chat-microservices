@@ -76,7 +76,7 @@ public class PostService {
         List<PostDto> posts = postsFromRepo.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
-//        TODO
+        // TODO
         posts.forEach(System.out::println);
         return posts;
     }
@@ -92,8 +92,10 @@ public class PostService {
     @Transactional
     public List<PostDto> getAllPostsWithComments() {
         log.info("postService - getAllPostsWithComments");
-        System.out.println("findAllWithMoreLikes()" + postRepository.findAllWithMoreLikes().stream().map(this::mapToDto).toList());
-        System.out.println("findByContentStartingWith()" + postRepository.findByContentStartingWith("po").stream().map(this::mapToDto).toList());
+        System.out.println(
+                "findAllWithMoreLikes()" + postRepository.findAllWithMoreLikes().stream().map(this::mapToDto).toList());
+        System.out.println("findByContentStartingWith()"
+                + postRepository.findByContentStartingWith("po").stream().map(this::mapToDto).toList());
         List<Post> posts = postRepository.findAllWithComments();
         try {
             return posts.stream()
@@ -117,11 +119,12 @@ public class PostService {
     // Utility method to map Post entity to PostDto
     private PostDto mapToDto(Post post) {
         PostDto postDto = new PostDto();
+        postDto.setId(post.getId());
         postDto.setContent(post.getContent());
         postDto.setLikes(post.getLikes());
         postDto.setComments(mapCommentsToDto(post.getComments()));
         postDto.setUserId(post.getUserId());
-        //  add more mappings here if needed
+        // add more mappings here if needed
         return postDto;
     }
 
