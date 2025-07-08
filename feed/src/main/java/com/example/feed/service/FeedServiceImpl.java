@@ -8,10 +8,8 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +51,7 @@ public class FeedServiceImpl implements FeedService {
                     .block();
 
             if (users == null || posts == null) {
+                log.error("Failed to retrieve users or posts. users={}, posts={}", users, posts);
                 throw new RuntimeException("Failed to retrieve users or posts.");
             }
             Map<Integer, User> userMap = users.stream().collect(Collectors.toMap(User::getUserId, user -> user));

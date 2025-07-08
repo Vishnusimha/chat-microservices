@@ -1,6 +1,8 @@
 package com.example.apigateway.data;
 
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,11 +20,11 @@ public class UserDao {
     private static final String USER = "USER";
 
     private final static List<UserDetails> APPLICATION_USERS = Arrays.asList(
-            new User("vishnu@gmail.com",
-                    "password",
-                    Collections.singleton(new SimpleGrantedAuthority(ADMIN)))
-            , new User("simha@gmail.com",
-                    "password",
+            new User("yournewemail@example.com",
+                    "yournewpassword",
+                    Collections.singleton(new SimpleGrantedAuthority(ADMIN))),
+            new User("anotheruser@example.com",
+                    "anotherpassword",
                     Collections.singleton(new SimpleGrantedAuthority(USER))));
 
     public UserDetails findUserByEmail(String email) {
@@ -32,5 +34,12 @@ public class UserDao {
                 .findFirst()
                 .orElseThrow(() -> new UsernameNotFoundException("No UserDao was found"));
     }
-}
 
+    public Mono<UserDetails> findUserByEmailReactive(String email) {
+        try {
+            return Mono.just(findUserByEmail(email));
+        } catch (UsernameNotFoundException e) {
+            return Mono.empty();
+        }
+    }
+}

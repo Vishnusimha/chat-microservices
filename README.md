@@ -1,6 +1,7 @@
 # chat-microservices
- chat-microservices
- Collecting workspace informationYes, you can understand the relationships and communication between these microservices by examining their code, configuration, and API endpoints. Here’s a summary based on your workspace:
+
+Understand the relationships and communication between these microservices by examining their code, configuration, and API endpoints. Here’s a summary based on your workspace:
+ http://localhost:8761/
 
 ## Microservices Overview
 
