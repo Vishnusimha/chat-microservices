@@ -36,6 +36,9 @@ public class PostService {
         if (postDto.getLikes() != null) {
             post.setLikes(postDto.getLikes());
         }
+        if (postDto.getUserId() != null) {
+            post.setUserId(postDto.getUserId());
+        }
         try {
             Post savedPost = postRepository.save(post);
             // add more mappings here if needed
@@ -52,6 +55,10 @@ public class PostService {
         post.setContent(postDto.getContent());
         if (postDto.getLikes() != null) {
             post.setLikes(postDto.getLikes());
+        }
+        // Optionally allow updating userId
+        if (postDto.getUserId() != null) {
+            post.setUserId(postDto.getUserId());
         }
         try {
             Post savedPost = postRepository.save(post);
@@ -76,7 +83,7 @@ public class PostService {
         List<PostDto> posts = postsFromRepo.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
-//        TODO
+        // TODO
         posts.forEach(System.out::println);
         return posts;
     }
@@ -92,8 +99,10 @@ public class PostService {
     @Transactional
     public List<PostDto> getAllPostsWithComments() {
         log.info("postService - getAllPostsWithComments");
-        System.out.println("findAllWithMoreLikes()" + postRepository.findAllWithMoreLikes().stream().map(this::mapToDto).toList());
-        System.out.println("findByContentStartingWith()" + postRepository.findByContentStartingWith("po").stream().map(this::mapToDto).toList());
+        System.out.println(
+                "findAllWithMoreLikes()" + postRepository.findAllWithMoreLikes().stream().map(this::mapToDto).toList());
+        System.out.println("findByContentStartingWith()"
+                + postRepository.findByContentStartingWith("po").stream().map(this::mapToDto).toList());
         List<Post> posts = postRepository.findAllWithComments();
         try {
             return posts.stream()
@@ -114,14 +123,28 @@ public class PostService {
         }
     }
 
+    @Transactional
+    public PostDto likePost(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found"));
+        if (post.getLikes() == null) {
+            post.setLikes(1);
+        } else {
+            post.setLikes(post.getLikes() + 1);
+        }
+        Post savedPost = postRepository.save(post);
+        return mapToDto(savedPost);
+    }
+
     // Utility method to map Post entity to PostDto
     private PostDto mapToDto(Post post) {
         PostDto postDto = new PostDto();
+        postDto.setId(post.getId());
         postDto.setContent(post.getContent());
         postDto.setLikes(post.getLikes());
         postDto.setComments(mapCommentsToDto(post.getComments()));
         postDto.setUserId(post.getUserId());
-        //  add more mappings here if needed
+        // add more mappings here if needed
         return postDto;
     }
 

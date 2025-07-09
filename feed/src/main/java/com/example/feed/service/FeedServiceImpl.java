@@ -11,9 +11,13 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,6 +31,9 @@ public class FeedServiceImpl implements FeedService {
     @Autowired
     private CircuitBreakerRegistry circuitBreakerRegistry;
 
+    @Autowired
+    private HttpServletRequest request;
+
     public void logCircuitBreakerState() {
         System.out.println("Circuit breaker state: " + circuitBreakerRegistry.circuitBreaker(FEED_SERVICE).getState());
     }
@@ -36,16 +43,24 @@ public class FeedServiceImpl implements FeedService {
     public List<FeedDto> getFeed() {
         try {
             log.info("feedService - getFeed");
-            List<User> users = webClientBuilder.build().get().uri("http://usersservice/users/all")
+            String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+            List<User> users = webClientBuilder.build().get()
+                    .uri("http://apigateway:8765/usersservice/users/all")
+                    .header(HttpHeaders.AUTHORIZATION, authHeader)
                     .retrieve()
-//                    .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Failed to retrieve users---")))
+                    // .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new
+                    // RuntimeException("Failed to retrieve users---")))
                     .bodyToMono(new ParameterizedTypeReference<List<User>>() {
                     })
                     .block();
 
-            List<PostDto> posts = webClientBuilder.build().get().uri("http://discussion/api/posts/all")
+            List<PostDto> posts = webClientBuilder.build().get()
+                    .uri("http://apigateway:8765/discussion/api/posts/all")
+                    .header(HttpHeaders.AUTHORIZATION, authHeader)
                     .retrieve()
-//                    .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Failed to retrieve posts---")))
+                    // .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new
+                    // RuntimeException("Failed to retrieve posts---")))
                     .bodyToMono(new ParameterizedTypeReference<List<PostDto>>() {
                     })
                     .block();
@@ -58,9 +73,19 @@ public class FeedServiceImpl implements FeedService {
 
             return posts.stream()
                     .map(post -> {
-                        User user = userMap.get(post.getUserId());
+                        Integer postUserId = post.getUserId();
+                        if (postUserId == null) {
+                            log.error("Post with null userId: {}", post);
+                            return null; // skip this post
+                        }
+                        User user = userMap.get(postUserId);
+                        if (user == null) {
+                            log.error("No user found for userId: {} in post {}", postUserId, post);
+                            return null; // skip this post
+                        }
                         return new FeedDto(user.getProfileName(), post, user.getUserId());
                     })
+                    .filter(Objects::nonNull)
                     .toList();
         } catch (Exception e) {
             log.error("Error in getFeed method", e.getCause());
@@ -83,7 +108,7 @@ public class FeedServiceImpl implements FeedService {
 
     @Override
     public List<FeedDto> getPostsOfUserByName(String userName) {
-        User user = webClientBuilder.build().get().uri("http://usersservice/users/" + userName)
+        User user = webClientBuilder.build().get().uri("http://apigateway:8765/usersservice/" + userName)
                 .retrieve()
                 .bodyToMono(User.class)
                 .block();
@@ -91,7 +116,8 @@ public class FeedServiceImpl implements FeedService {
         if (user == null) {
             throw new RuntimeException("User not found: " + userName);
         }
-        List<PostDto> posts = webClientBuilder.build().get().uri("http://discussion/api/posts/userId/" + user.getUserId())
+        List<PostDto> posts = webClientBuilder.build().get()
+                .uri("http://apigateway:8765/discussion/api/posts/userId/" + user.getUserId())
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<PostDto>>() {
                 })
