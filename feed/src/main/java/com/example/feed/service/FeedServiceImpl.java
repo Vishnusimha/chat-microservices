@@ -46,7 +46,7 @@ public class FeedServiceImpl implements FeedService {
             String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
             List<User> users = webClientBuilder.build().get()
-                    .uri("http://apigateway:8765/usersservice/users/all")
+                    .uri("http://USERSSERVICE/api/users/all")
                     .header(HttpHeaders.AUTHORIZATION, authHeader)
                     .retrieve()
                     // .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new
@@ -56,7 +56,7 @@ public class FeedServiceImpl implements FeedService {
                     .block();
 
             List<PostDto> posts = webClientBuilder.build().get()
-                    .uri("http://apigateway:8765/discussion/api/posts/all")
+                    .uri("http://DISCUSSION/api/posts/all")
                     .header(HttpHeaders.AUTHORIZATION, authHeader)
                     .retrieve()
                     // .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new
@@ -69,7 +69,7 @@ public class FeedServiceImpl implements FeedService {
                 log.error("Failed to retrieve users or posts. users={}, posts={}", users, posts);
                 throw new RuntimeException("Failed to retrieve users or posts.");
             }
-            Map<Integer, User> userMap = users.stream().collect(Collectors.toMap(User::getUserId, user -> user));
+            Map<Integer, User> userMap = users.stream().collect(Collectors.toMap(User::getId, user -> user));
 
             return posts.stream()
                     .map(post -> {
@@ -83,7 +83,7 @@ public class FeedServiceImpl implements FeedService {
                             log.error("No user found for userId: {} in post {}", postUserId, post);
                             return null; // skip this post
                         }
-                        return new FeedDto(user.getProfileName(), post, user.getUserId());
+                        return new FeedDto(user.getProfileName(), post, user.getId());
                     })
                     .filter(Objects::nonNull)
                     .toList();
@@ -108,7 +108,7 @@ public class FeedServiceImpl implements FeedService {
 
     @Override
     public List<FeedDto> getPostsOfUserByName(String userName) {
-        User user = webClientBuilder.build().get().uri("http://apigateway:8765/usersservice/" + userName)
+        User user = webClientBuilder.build().get().uri("http://USERSSERVICE/api/users/" + userName)
                 .retrieve()
                 .bodyToMono(User.class)
                 .block();
@@ -117,7 +117,7 @@ public class FeedServiceImpl implements FeedService {
             throw new RuntimeException("User not found: " + userName);
         }
         List<PostDto> posts = webClientBuilder.build().get()
-                .uri("http://apigateway:8765/discussion/api/posts/userId/" + user.getUserId())
+                .uri("http://DISCUSSION/api/posts/userId/" + user.getId())
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<PostDto>>() {
                 })
@@ -127,7 +127,7 @@ public class FeedServiceImpl implements FeedService {
             throw new RuntimeException("Posts not found for user: " + userName);
         }
         return posts.stream()
-                .map(post -> new FeedDto(user.getProfileName(), post, user.getUserId()))
+                .map(post -> new FeedDto(user.getProfileName(), post, user.getId()))
                 .collect(Collectors.toList());
     }
 }

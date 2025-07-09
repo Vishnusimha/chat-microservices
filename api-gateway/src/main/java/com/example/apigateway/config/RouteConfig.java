@@ -23,6 +23,11 @@ public class RouteConfig {
                                 .route("feed_service", r -> r
                                                 .path("/feed/**")
                                                 .uri("lb://feedservice"))
+                                // Discussion service routes
+                                .route("discussion_service", r -> r
+                                                .path("/discussion/**")
+                                                .filters(f -> f.stripPrefix(1))
+                                                .uri("lb://discussion"))
                                 .build();
         }
 }
