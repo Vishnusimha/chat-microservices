@@ -6,6 +6,7 @@ import com.vishnu.discussion.exception.CommentNotFoundException;
 import com.vishnu.discussion.exception.PostNotFoundException;
 import com.vishnu.discussion.service.CommentService;
 import com.vishnu.discussion.service.PostService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +25,7 @@ public class PostController {
     private CommentService commentService;
 
     @PostMapping("/create")
-    public ResponseEntity<PostDto> createPost(@RequestBody PostDto postDto) {
+    public ResponseEntity<PostDto> createPost(@Valid @RequestBody PostDto postDto) {
         if (postDto.getUserId() == null) {
             return ResponseEntity.badRequest().body(null);
         }
@@ -36,7 +37,11 @@ public class PostController {
     }
 
     @PutMapping("/{postId}/update")
-    public ResponseEntity<PostDto> updatePost(@PathVariable("postId") Long postId, @RequestBody PostDto postDto) {
+    public ResponseEntity<PostDto> updatePost(@PathVariable("postId") Long postId,
+            @Valid @RequestBody PostDto postDto) {
+        if (postDto.getContent() == null || postDto.getContent().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(null);
+        }
         PostDto updated = postService.updatePost(postId, postDto);
         if (updated == null) {
             return ResponseEntity.notFound().build();
@@ -76,8 +81,11 @@ public class PostController {
 
     @PostMapping("/{postId}/comment")
     public ResponseEntity<CommentDto> addComment(@PathVariable("postId") Long postId,
-            @RequestBody CommentDto commentDto) {
+            @Valid @RequestBody CommentDto commentDto) {
         try {
+            if (commentDto.getContent() == null || commentDto.getContent().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(null);
+            }
             // Check if post exists before adding comment
             PostDto post = postService.getPostById(postId);
             if (post == null) {
@@ -103,5 +111,14 @@ public class PostController {
         } catch (CommentNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @PutMapping("/{postId}/like")
+    public ResponseEntity<PostDto> likePost(@PathVariable("postId") Long postId) {
+        PostDto updated = postService.likePost(postId);
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(updated);
     }
 }

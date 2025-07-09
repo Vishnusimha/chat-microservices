@@ -37,14 +37,14 @@ class PostControllerTest {
     @Test
     void createPost() throws Exception {
         // Mocking the service method
-        PostDto postDto = new PostDto("Test Post", 10, null);
+        PostDto postDto = new PostDto(null, "Test Post", 10, null, 1);
         when(postService.createPost(postDto)).thenReturn(postDto);
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.post("/api/posts/create")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\":\"Test Post\",\"likes\":10}"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\":\"Test Post\",\"likes\":10,\"userId\":1}"))
+                .andExpect(MockMvcResultMatchers.status().isCreated())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content").value("Test Post"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.likes").value(10));
     }
@@ -52,12 +52,12 @@ class PostControllerTest {
     @Test
     public void testGetPostById() throws Exception {
         Long postId = 1L;
-        PostDto postDto = new PostDto("Test Post", 10, null);
+        PostDto postDto = new PostDto(postId, "Test Post", 10, null, 1);
 
         when(postService.getPostById(postId)).thenReturn(postDto);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/posts/{postId}", postId)
-                        .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content").value("Test Post"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.likes").value(10));
@@ -68,21 +68,23 @@ class PostControllerTest {
         Long postId = 1L;
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/posts/{postId}", postId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isNoContent());
     }
 
     @Test
     void updatePost() throws Exception {
         // Mocking the service method
         Long postId = 1L;
-        PostDto postDto = new PostDto("Updated Post", 20, null);
+        PostDto postDto = new PostDto(postId, "Updated Post", 20, null, 1);
+        // Mock getPostById to return a post (controller may check existence)
+        when(postService.getPostById(postId)).thenReturn(postDto);
         when(postService.updatePost(postId, postDto)).thenReturn(postDto);
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.put("/api/posts/{postId}/update", postId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\":\"Updated Post\",\"likes\":20}"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\":\"Updated Post\",\"likes\":20,\"userId\":1}"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content").value("Updated Post"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.likes").value(20));
@@ -92,12 +94,12 @@ class PostControllerTest {
     void getPostById() throws Exception {
         // Mocking the service method
         Long postId = 1L;
-        PostDto postDto = new PostDto("Test Post", 10, null);
+        PostDto postDto = new PostDto(postId, "Test Post", 10, null, 1);
         when(postService.getPostById(postId)).thenReturn(postDto);
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.get("/api/posts/{postId}", postId)
-                        .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content").value("Test Post"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.likes").value(10));
@@ -107,13 +109,14 @@ class PostControllerTest {
     void getAllPosts() throws Exception {
         // Mocking the service method
         List<PostDto> postDtoList = new ArrayList<>();
-        postDtoList.add(new PostDto("Test Post 1", 10, null));
-        postDtoList.add(new PostDto("Test Post 2", 20, null));
-        when(postService.getAllPosts()).thenReturn(postDtoList);
+        postDtoList.add(new PostDto(1L, "Test Post 1", 10, null, 1));
+        postDtoList.add(new PostDto(2L, "Test Post 2", 20, null, 1));
+        // The controller calls getAllPostsWithComments, not getAllPosts
+        when(postService.getAllPostsWithComments()).thenReturn(postDtoList);
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.get("/api/posts/all")
-                        .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$[0].content").value("Test Post 1"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$[0].likes").value(10))
@@ -128,8 +131,8 @@ class PostControllerTest {
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/posts/{postId}", postId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isNoContent());
     }
 
     @Test
@@ -138,15 +141,16 @@ class PostControllerTest {
         Long postId = 1L;
         CommentDto commentDto = new CommentDto();
         commentDto.setContent("Test Comment");
-        // Adjust the behavior based on your application logic
-        // For example, if addCommentToPost returns the added comment, you can mock it accordingly
+        // Mock postService.getPostById to return a post (controller checks existence)
+        PostDto postDto = new PostDto(postId, "Test Post", 10, null, 1);
+        when(postService.getPostById(postId)).thenReturn(postDto);
         when(commentService.addCommentToPost(postId, commentDto)).thenReturn(commentDto);
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.post("/api/posts/{postId}/comment", postId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\":\"Test Comment\"}"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\":\"Test Comment\"}"))
+                .andExpect(MockMvcResultMatchers.status().isCreated())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content").value("Test Comment"));
     }
 
@@ -157,13 +161,14 @@ class PostControllerTest {
         Long commentId = 1L;
 
         // Adjust the behavior based on your application logic
-        // For example, if deleteCommentById method doesn't return anything, you can mock it using doNothing
+        // For example, if deleteCommentById method doesn't return anything, you can
+        // mock it using doNothing
         doNothing().when(commentService).deleteCommentById(commentId);
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/posts/{postId}/comment/{commentId}", postId, commentId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isNoContent());
     }
 
     @AfterEach

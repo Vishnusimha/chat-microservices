@@ -27,7 +27,7 @@ public class CommentService {
 
         Comment comment = new Comment();
         comment.setContent(commentDto.getContent());
-        //  add more mappings here if needed
+        // add more mappings here if needed
         comment.setPost(post);
         try {
             Comment savedComment = commentRepository.save(comment);
