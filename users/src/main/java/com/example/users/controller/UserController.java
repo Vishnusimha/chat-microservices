@@ -41,8 +41,8 @@ public class UserController {
                 new User(1, "vishnu", "vish"),
                 new User(2, "simha", "simba"),
                 new User(3, "sunith", "Sagar"),
-                new User(10, "Sample", "SampleVName")
-        );
+                new User(8, "testuser", "Test User"),
+                new User(10, "Sample", "SampleVName"));
     }
 
     @GetMapping("user/{userId}")
@@ -52,8 +52,7 @@ public class UserController {
                 new User(1, "vishnu", "vish"),
                 new User(2, "simha", "simba"),
                 new User(3, "sunith", "Sagar"),
-                new User(10, "Sample", "SampleVName")
-        );
+                new User(10, "Sample", "SampleVName"));
         User user = userList.stream()
                 .filter(usr -> usr.getUserId() == userId)
                 .findAny()
@@ -73,8 +72,7 @@ public class UserController {
                 new User(1, "vishnu", "vish"),
                 new User(2, "simha", "simba"),
                 new User(3, "sunith", "Sagar"),
-                new User(10, "Sample", "SampleVName")
-        );
+                new User(10, "Sample", "SampleVName"));
         User user = userList.stream()
                 .filter(user1 -> user1.getUserName().equals(userName))
                 .findAny()

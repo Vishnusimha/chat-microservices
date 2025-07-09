@@ -6,5 +6,6 @@ import java.util.List;
 
 public interface FeedService {
     List<FeedDto> getFeed();
+
     List<FeedDto> getPostsOfUserByName(String userName);
 }

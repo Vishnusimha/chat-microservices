@@ -3,7 +3,6 @@ package com.example.feed.data;
 import lombok.Getter;
 import lombok.Setter;
 
-
 @Getter
 @Setter
 public class User {
@@ -11,11 +10,12 @@ public class User {
     private String userName;
     private String profileName;
 
+    public User() {
+    }
+
     public User(int userId, String userName, String profileName) {
         this.userId = userId;
         this.userName = userName;
         this.profileName = profileName;
     }
 }
-
-
