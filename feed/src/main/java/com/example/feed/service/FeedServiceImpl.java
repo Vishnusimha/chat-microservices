@@ -108,7 +108,11 @@ public class FeedServiceImpl implements FeedService {
 
     @Override
     public List<FeedDto> getPostsOfUserByName(String userName) {
-        User user = webClientBuilder.build().get().uri("http://USERSSERVICE/api/users/" + userName)
+        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        User user = webClientBuilder.build().get()
+                .uri("http://USERSSERVICE/api/users/name/" + userName)
+                .header(HttpHeaders.AUTHORIZATION, authHeader)
                 .retrieve()
                 .bodyToMono(User.class)
                 .block();
@@ -118,6 +122,7 @@ public class FeedServiceImpl implements FeedService {
         }
         List<PostDto> posts = webClientBuilder.build().get()
                 .uri("http://DISCUSSION/api/posts/userId/" + user.getId())
+                .header(HttpHeaders.AUTHORIZATION, authHeader)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<PostDto>>() {
                 })

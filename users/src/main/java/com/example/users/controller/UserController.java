@@ -74,14 +74,14 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+    public ResponseEntity<?> getUserById(@PathVariable("id") Long id) {
         return userRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/name/{userName}")
-    public ResponseEntity<?> getUserByUserName(@PathVariable String userName) {
+    public ResponseEntity<?> getUserByUserName(@PathVariable("userName") String userName) {
         return userRepository.findByUserName(userName)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

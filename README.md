@@ -4,13 +4,13 @@ A Spring Cloud-based microservices architecture for a chat/social media applicat
 
 ## 🏗️ Microservices Overview
 
-| Service | Port | Description | Database |
-|---------|------|-------------|----------|
-| **discoveryserver** | 8761 | Eureka server for service discovery | N/A |
-| **api-gateway** | 8765 | Single entry point, JWT validation, routing | N/A |
-| **users** | 8081 | User management, authentication, JWT generation | H2/MySQL |
-| **feed** | 8080 | Aggregates user and post data for personalized feeds | N/A |
-| **discussion** | 8083 | Posts and comments management | H2/MySQL |
+| Service             | Port | Description                                          | Database |
+| ------------------- | ---- | ---------------------------------------------------- | -------- |
+| **discoveryserver** | 8761 | Eureka server for service discovery                  | N/A      |
+| **api-gateway**     | 8765 | Single entry point, JWT validation, routing          | N/A      |
+| **users**           | 8081 | User management, authentication, JWT generation      | H2/MySQL |
+| **feed**            | 8080 | Aggregates user and post data for personalized feeds | N/A      |
+| **discussion**      | 8083 | Posts and comments management                        | H2/MySQL |
 
 ---
 
@@ -91,11 +91,11 @@ public class RouteConfig {
 ### Authentication Endpoints
 **Base URL:** `http://localhost:8765`
 
-| Endpoint | Method | Description | Authentication |
-|----------|--------|-------------|----------------|
-| `/auth/register` | POST | Register new user | None |
-| `/auth/login` | POST | Login and get JWT | None |
-| All other endpoints | * | Protected endpoints | JWT Required |
+| Endpoint            | Method | Description         | Authentication |
+| ------------------- | ------ | ------------------- | -------------- |
+| `/auth/register`    | POST   | Register new user   | None           |
+| `/auth/login`       | POST   | Login and get JWT   | None           |
+| All other endpoints | *      | Protected endpoints | JWT Required   |
 
 ---
 
@@ -133,24 +133,24 @@ public class RouteConfig {
 
 ### 👥 Users Service APIs
 
-| Endpoint | Method | Description | Example URL |
-|----------|--------|-------------|-------------|
-| `/api/users/all` | GET | Get all users | `http://localhost:8765/api/users/all` |
-| `/api/users/{id}` | GET | Get user by ID | `http://localhost:8765/api/users/1` |
-| `/api/users/name/{userName}` | GET | Get user by username | `http://localhost:8765/api/users/name/johndoe` |
-| `/api/users/greeting` | GET | Test endpoint with DB | `http://localhost:8765/api/users/greeting` |
+| Endpoint                     | Method | Description           | Example URL                                    |
+| ---------------------------- | ------ | --------------------- | ---------------------------------------------- |
+| `/api/users/all`             | GET    | Get all users         | `http://localhost:8765/api/users/all`          |
+| `/api/users/{id}`            | GET    | Get user by ID        | `http://localhost:8765/api/users/1`            |
+| `/api/users/name/{userName}` | GET    | Get user by username  | `http://localhost:8765/api/users/name/johndoe` |
+| `/api/users/greeting`        | GET    | Test endpoint with DB | `http://localhost:8765/api/users/greeting`     |
 
 ### 💬 Discussion Service APIs
 
-| Endpoint | Method | Description | Example URL |
-|----------|--------|-------------|-------------|
-| `/discussion/api/posts/create` | POST | Create new post | `http://localhost:8765/discussion/api/posts/create` |
-| `/discussion/api/posts/{postId}/update` | PUT | Update post | `http://localhost:8765/discussion/api/posts/1/update` |
-| `/discussion/api/posts/{postId}` | GET | Get post by ID | `http://localhost:8765/discussion/api/posts/1` |
-| `/discussion/api/posts/userId/{userId}` | GET | Get posts by user | `http://localhost:8765/discussion/api/posts/userId/1` |
-| `/discussion/api/posts/all` | GET | Get all posts | `http://localhost:8765/discussion/api/posts/all` |
-| `/discussion/api/posts/{postId}` | DELETE | Delete post | `http://localhost:8765/discussion/api/posts/1` |
-| `/discussion/api/posts/{postId}/comment` | POST | Add comment | `http://localhost:8765/discussion/api/posts/1/comment` |
+| Endpoint                                 | Method | Description       | Example URL                                            |
+| ---------------------------------------- | ------ | ----------------- | ------------------------------------------------------ |
+| `/discussion/api/posts/create`           | POST   | Create new post   | `http://localhost:8765/discussion/api/posts/create`    |
+| `/discussion/api/posts/{postId}/update`  | PUT    | Update post       | `http://localhost:8765/discussion/api/posts/1/update`  |
+| `/discussion/api/posts/{postId}`         | GET    | Get post by ID    | `http://localhost:8765/discussion/api/posts/1`         |
+| `/discussion/api/posts/userId/{userId}`  | GET    | Get posts by user | `http://localhost:8765/discussion/api/posts/userId/1`  |
+| `/discussion/api/posts/all`              | GET    | Get all posts     | `http://localhost:8765/discussion/api/posts/all`       |
+| `/discussion/api/posts/{postId}`         | DELETE | Delete post       | `http://localhost:8765/discussion/api/posts/1`         |
+| `/discussion/api/posts/{postId}/comment` | POST   | Add comment       | `http://localhost:8765/discussion/api/posts/1/comment` |
 
 #### Create Post Example
 **POST** `/discussion/api/posts/create`
@@ -173,10 +173,10 @@ public class RouteConfig {
 
 ### 📰 Feed Service APIs
 
-| Endpoint | Method | Description | Example URL |
-|----------|--------|-------------|-------------|
-| `/feed/all` | GET | Get aggregated feed | `http://localhost:8765/feed/all` |
-| `/feed/user/{userName}` | GET | Get user's feed | `http://localhost:8765/feed/user/johndoe` |
+| Endpoint                | Method | Description         | Example URL                               |
+| ----------------------- | ------ | ------------------- | ----------------------------------------- |
+| `/feed/all`             | GET    | Get aggregated feed | `http://localhost:8765/feed/all`          |
+| `/feed/user/{userName}` | GET    | Get user's feed     | `http://localhost:8765/feed/user/johndoe` |
 
 #### Feed Response Example
 **GET** `/feed/all`
@@ -362,13 +362,13 @@ curl -H "Authorization: Bearer <your-jwt-token>" \
 
 ## 📊 Service Status
 
-| Service | Status | Eureka Registration | Key Features Working |
-|---------|--------|-------------------|---------------------|
-| Discovery Server | ✅ Running | N/A | Service discovery |
-| API Gateway | ✅ Running | ✅ Registered | Routing, JWT validation |
-| Users Service | ✅ Running | ✅ Registered | Auth, user management |
-| Discussion Service | ✅ Running | ✅ Registered | Posts, comments |
-| Feed Service | ✅ Running | ✅ Registered | Data aggregation |
+| Service            | Status    | Eureka Registration | Key Features Working    |
+| ------------------ | --------- | ------------------- | ----------------------- |
+| Discovery Server   | ✅ Running | N/A                 | Service discovery       |
+| API Gateway        | ✅ Running | ✅ Registered        | Routing, JWT validation |
+| Users Service      | ✅ Running | ✅ Registered        | Auth, user management   |
+| Discussion Service | ✅ Running | ✅ Registered        | Posts, comments         |
+| Feed Service       | ✅ Running | ✅ Registered        | Data aggregation        |
 
 ---
 
@@ -489,7 +489,7 @@ http://localhost:8765/
 ### Authentication APIs
 
 | Endpoint         | Method | Description         | Example Body / Usage                                                             |
-|------------------|--------|---------------------|----------------------------------------------------------------------------------|
+| ---------------- | ------ | ------------------- | -------------------------------------------------------------------------------- |
 | `/auth/register` | POST   | Register a new user | `{ "userName": "...", "email": "...", "password": "...", "profileName": "..." }` |
 | `/auth/login`    | POST   | Get JWT token       | `{ "email": "...", "password": "..." }`                                          |
 
@@ -503,7 +503,7 @@ http://localhost:8765/
 ### Feed Service APIs (via Gateway)
 
 | Endpoint                | Method | Description                    | Example URL                              |
-|-------------------------|--------|--------------------------------|------------------------------------------|
+| ----------------------- | ------ | ------------------------------ | ---------------------------------------- |
 | `/feed/all`             | GET    | Get all feed items             | `http://localhost:8765/feed/all`         |
 | `/feed/user/{userName}` | GET    | Get feed for a specific user   | `http://localhost:8765/feed/user/vishnu` |
 | `/feed/hello`           | GET    | Test endpoint for feed service | `http://localhost:8765/feed/hello`       |
@@ -513,7 +513,7 @@ http://localhost:8765/
 ### Users Service APIs (via Gateway)
 
 | Endpoint                     | Method | Description                 | Example URL                                   |
-|------------------------------|--------|-----------------------------|-----------------------------------------------|
+| ---------------------------- | ------ | --------------------------- | --------------------------------------------- |
 | `/api/users/all`             | GET    | Get all users               | `http://localhost:8765/api/users/all`         |
 | `/api/users/{id}`            | GET    | Get user by user ID         | `http://localhost:8765/api/users/1`           |
 | `/api/users/name/{userName}` | GET    | Get user by user name       | `http://localhost:8765/api/users/name/vishnu` |
@@ -525,7 +525,7 @@ http://localhost:8765/
 ### Discussion Service APIs (via Gateway)
 
 | Endpoint                                  | Method | Description                 | Example URL                                   |
-|-------------------------------------------|--------|-----------------------------|-----------------------------------------------|
+| ----------------------------------------- | ------ | --------------------------- | --------------------------------------------- |
 | `/api/posts/create`                       | POST   | Create a new post           | `http://localhost:8765/api/posts/create`      |
 | `/api/posts/{postId}/update`              | PUT    | Update a post               | `http://localhost:8765/api/posts/1/update`    |
 | `/api/posts/{postId}`                     | GET    | Get post by ID              | `http://localhost:8765/api/posts/1`           |
