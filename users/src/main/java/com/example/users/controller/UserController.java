@@ -1,18 +1,16 @@
 package com.example.users.controller;
 
+import com.example.users.dto.LoginRequest;
+import com.example.users.dto.RegisterRequest;
 import com.example.users.model.User;
 import com.example.users.repository.UserRepository;
-import com.example.users.dto.RegisterRequest;
-import com.example.users.dto.LoginRequest;
 import com.example.users.service.UserService;
-
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;

@@ -42,8 +42,8 @@ class PostControllerTest {
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.post("/api/posts/create")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"content\":\"Test Post\",\"likes\":10,\"userId\":1}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Test Post\",\"likes\":10,\"userId\":1}"))
                 .andExpect(MockMvcResultMatchers.status().isCreated())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content").value("Test Post"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.likes").value(10));
@@ -57,7 +57,7 @@ class PostControllerTest {
         when(postService.getPostById(postId)).thenReturn(postDto);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/posts/{postId}", postId)
-                .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content").value("Test Post"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.likes").value(10));
@@ -68,7 +68,7 @@ class PostControllerTest {
         Long postId = 1L;
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/posts/{postId}", postId)
-                .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isNoContent());
     }
 
@@ -83,8 +83,8 @@ class PostControllerTest {
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.put("/api/posts/{postId}/update", postId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"content\":\"Updated Post\",\"likes\":20,\"userId\":1}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Updated Post\",\"likes\":20,\"userId\":1}"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content").value("Updated Post"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.likes").value(20));
@@ -99,7 +99,7 @@ class PostControllerTest {
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.get("/api/posts/{postId}", postId)
-                .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content").value("Test Post"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.likes").value(10));
@@ -116,7 +116,7 @@ class PostControllerTest {
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.get("/api/posts/all")
-                .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$[0].content").value("Test Post 1"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$[0].likes").value(10))
@@ -131,7 +131,7 @@ class PostControllerTest {
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/posts/{postId}", postId)
-                .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isNoContent());
     }
 
@@ -148,8 +148,8 @@ class PostControllerTest {
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.post("/api/posts/{postId}/comment", postId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"content\":\"Test Comment\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Test Comment\"}"))
                 .andExpect(MockMvcResultMatchers.status().isCreated())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content").value("Test Comment"));
     }
@@ -167,7 +167,7 @@ class PostControllerTest {
 
         // Performing the request and verifying the response
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/posts/{postId}/comment/{commentId}", postId, commentId)
-                .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isNoContent());
     }
 

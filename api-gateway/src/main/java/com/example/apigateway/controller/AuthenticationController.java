@@ -1,15 +1,19 @@
 package com.example.apigateway.controller;
 
 import com.example.apigateway.config.JwtUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.Map;
 
 @RestController
@@ -17,11 +21,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthenticationController {
-    @Autowired
-    private WebClient.Builder webClientBuilder;
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String USERS_SERVICE_URL = "http://usersservice/api/users";
+    @Autowired
+    private WebClient.Builder webClientBuilder;
 
     @PostMapping("/register")
     public Mono<ResponseEntity<String>> register(@RequestBody Map<String, Object> userDto) {
