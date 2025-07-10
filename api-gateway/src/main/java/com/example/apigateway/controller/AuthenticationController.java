@@ -68,10 +68,17 @@ public class AuthenticationController {
                         }
                         String email = node.get("email").asText();
                         String jwt = jwtUtil.generateTokenFromEmail(email);
-                        return ResponseEntity.ok().body(Map.of(
+
+                        // Create proper JSON response instead of Map.toString()
+                        Map<String, Object> responseMap = Map.of(
                                 "token", jwt,
-                                "userId", node.get("userId").asText(),
-                                "username", node.get("username").asText()).toString());
+                                "userId", Integer.parseInt(node.get("userId").asText()),
+                                "username", node.get("username").asText());
+
+                        String jsonResponse = objectMapper.writeValueAsString(responseMap);
+                        return ResponseEntity.ok()
+                                .header("Content-Type", "application/json")
+                                .body(jsonResponse);
                     } catch (Exception e) {
                         log.error("Error parsing user info: {}", e.getMessage());
                         return ResponseEntity.status(500).body("Error processing login");

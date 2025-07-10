@@ -12,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PostDto {
+    private Long id;
     private String content;
     private Integer likes;
     private List<CommentDto> comments;

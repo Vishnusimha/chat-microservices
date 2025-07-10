@@ -14,7 +14,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT DISTINCT p FROM Post p LEFT JOIN FETCH p.comments")
     List<Post> findAllWithComments();
 
-    List<Post> findAllByUserId(Long userId);
+    List<Post> findAllByUserId(Integer userId);
 
     @Query("SELECT p FROM Post p WHERE p.likes > 2")
     List<Post> findAllWithMoreLikes();

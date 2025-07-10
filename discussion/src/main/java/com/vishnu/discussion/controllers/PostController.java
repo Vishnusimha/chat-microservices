@@ -38,7 +38,7 @@ public class PostController {
 
     @PutMapping("/{postId}/update")
     public ResponseEntity<PostDto> updatePost(@PathVariable("postId") Long postId,
-                                              @Valid @RequestBody PostDto postDto) {
+            @Valid @RequestBody PostDto postDto) {
         if (postDto.getContent() == null || postDto.getContent().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(null);
         }
@@ -59,7 +59,7 @@ public class PostController {
     }
 
     @GetMapping("/userId/{userId}")
-    public ResponseEntity<List<PostDto>> getPostByUserId(@PathVariable("userId") Long userId) {
+    public ResponseEntity<List<PostDto>> getPostByUserId(@PathVariable("userId") Integer userId) {
         List<PostDto> posts = postService.getPostsByUserId(userId);
         return ResponseEntity.ok(posts);
     }
@@ -81,7 +81,7 @@ public class PostController {
 
     @PostMapping("/{postId}/comment")
     public ResponseEntity<CommentDto> addComment(@PathVariable("postId") Long postId,
-                                                 @Valid @RequestBody CommentDto commentDto) {
+            @Valid @RequestBody CommentDto commentDto) {
         try {
             if (commentDto.getContent() == null || commentDto.getContent().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(null);
@@ -104,7 +104,7 @@ public class PostController {
 
     @DeleteMapping("/{postId}/comment/{commentId}")
     public ResponseEntity<?> deleteComment(@PathVariable("postId") Long postId,
-                                           @PathVariable("commentId") Long commentId) {
+            @PathVariable("commentId") Long commentId) {
         try {
             commentService.deleteCommentById(commentId);
             return ResponseEntity.noContent().build();

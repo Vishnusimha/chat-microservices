@@ -77,7 +77,7 @@ public class PostService {
     }
 
     @Transactional
-    public List<PostDto> getPostsByUserId(Long userId) {
+    public List<PostDto> getPostsByUserId(Integer userId) {
         log.info("postService - getPostsByUserId");
         List<Post> postsFromRepo = postRepository.findAllByUserId(userId).stream().toList();
         List<PostDto> posts = postsFromRepo.stream()
@@ -155,6 +155,7 @@ public class PostService {
                             CommentDto commentDto = new CommentDto();
                             commentDto.setId(comment.getId());
                             commentDto.setContent(comment.getContent());
+                            commentDto.setAuthorName(comment.getAuthorName());
                             return commentDto;
                         }).collect(Collectors.toList()))
                 .orElse(Collections.emptyList());

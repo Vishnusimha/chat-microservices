@@ -97,7 +97,7 @@ public class FeedServiceImpl implements FeedService {
     public List<FeedDto> getFeedFallback(Throwable t) {
         log.error("Failed to fetch feed, invoking fallback method", t);
         List<FeedDto> feedDtos = new ArrayList<>();
-        PostDto postDto = new PostDto("a", 1, null, 1);
+        PostDto postDto = new PostDto(1L, "Fallback post content", 0, null, 1);
         feedDtos.add(new FeedDto("Fall Back Sample", postDto, 1));
         feedDtos.add(new FeedDto("Fall Back Sample", postDto, 1));
         feedDtos.add(new FeedDto("Fall Back Sample", postDto, 1));
