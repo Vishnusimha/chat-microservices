@@ -5,14 +5,13 @@ import com.example.feed.data.PostDto;
 import com.example.feed.data.User;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.HttpHeaders;
 
 import java.util.ArrayList;
 import java.util.List;
