@@ -12,9 +12,10 @@ import java.util.List;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PostDto {
-    private Long id; // <-- Add this line
+    private Long id;
     private String content;
     private Integer likes;
     private List<CommentDto> comments;
     private Integer userId;
+    private List<Integer> likedBy; // List of user IDs who liked this post
 }
