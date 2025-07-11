@@ -1,6 +1,5 @@
 package com.vishnu.discussion.data;
 
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,7 +16,11 @@ public class Comment {
 
     @Transient
     private String transientField;
-    /*transientField will not be mapped to any column, thanks to the @Transient annotation. Therefore, changes to transientField will not affect the database.*/
+    /*
+     * transientField will not be mapped to any column, thanks to the @Transient
+     * annotation. Therefore, changes to transientField will not affect the
+     * database.
+     */
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,12 +29,21 @@ public class Comment {
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "author_name")
+    private String authorName;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     private Post post;
 
     public Comment(String content, Post post) {
         this.content = content;
+        this.post = post;
+    }
+
+    public Comment(String content, String authorName, Post post) {
+        this.content = content;
+        this.authorName = authorName;
         this.post = post;
     }
 

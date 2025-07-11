@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class ActuatorController {
-
     @GetMapping("/actuator/health")
     public Health health() {
         // Check if application is healthy and return appropriate status

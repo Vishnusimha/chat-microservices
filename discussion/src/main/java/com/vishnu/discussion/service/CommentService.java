@@ -27,11 +27,10 @@ public class CommentService {
 
         Comment comment = new Comment();
         comment.setContent(commentDto.getContent());
-        //  add more mappings here if needed
+        comment.setAuthorName(commentDto.getAuthorName());
         comment.setPost(post);
         try {
             Comment savedComment = commentRepository.save(comment);
-            // add more mappings here if needed
             return mapToDto(savedComment);
         } catch (Exception e) {
             throw new CommentAdditionException("Failed to add comment to a post : " + post.getContent(), e);
@@ -61,7 +60,7 @@ public class CommentService {
         CommentDto commentDto = new CommentDto();
         commentDto.setId(comment.getId());
         commentDto.setContent(comment.getContent());
-        // add more mappings here if needed
+        commentDto.setAuthorName(comment.getAuthorName());
         return commentDto;
     }
 }

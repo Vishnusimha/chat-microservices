@@ -8,6 +8,7 @@ import com.vishnu.discussion.exception.PostCreationException;
 import com.vishnu.discussion.exception.PostNotFoundException;
 import com.vishnu.discussion.repository.CommentRepository;
 import com.vishnu.discussion.repository.PostRepository;
+import com.vishnu.discussion.repository.LikeRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,9 @@ public class PostService {
     @Autowired
     private CommentRepository commentRepository;
 
+    @Autowired
+    private LikeRepository likeRepository;
+
     @Transactional
     public PostDto createPost(PostDto postDto) {
         log.info("postService - createPost");
@@ -35,6 +39,9 @@ public class PostService {
         post.setContent(postDto.getContent());
         if (postDto.getLikes() != null) {
             post.setLikes(postDto.getLikes());
+        }
+        if (postDto.getUserId() != null) {
+            post.setUserId(postDto.getUserId());
         }
         try {
             Post savedPost = postRepository.save(post);
@@ -53,6 +60,10 @@ public class PostService {
         if (postDto.getLikes() != null) {
             post.setLikes(postDto.getLikes());
         }
+        // Optionally allow updating userId
+        if (postDto.getUserId() != null) {
+            post.setUserId(postDto.getUserId());
+        }
         try {
             Post savedPost = postRepository.save(post);
             // add more mappings here if needed
@@ -70,13 +81,13 @@ public class PostService {
     }
 
     @Transactional
-    public List<PostDto> getPostsByUserId(Long userId) {
+    public List<PostDto> getPostsByUserId(Integer userId) {
         log.info("postService - getPostsByUserId");
         List<Post> postsFromRepo = postRepository.findAllByUserId(userId).stream().toList();
         List<PostDto> posts = postsFromRepo.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
-//        TODO
+        // TODO
         posts.forEach(System.out::println);
         return posts;
     }
@@ -92,8 +103,10 @@ public class PostService {
     @Transactional
     public List<PostDto> getAllPostsWithComments() {
         log.info("postService - getAllPostsWithComments");
-        System.out.println("findAllWithMoreLikes()" + postRepository.findAllWithMoreLikes().stream().map(this::mapToDto).toList());
-        System.out.println("findByContentStartingWith()" + postRepository.findByContentStartingWith("po").stream().map(this::mapToDto).toList());
+        System.out.println(
+                "findAllWithMoreLikes()" + postRepository.findAllWithMoreLikes().stream().map(this::mapToDto).toList());
+        System.out.println("findByContentStartingWith()"
+                + postRepository.findByContentStartingWith("po").stream().map(this::mapToDto).toList());
         List<Post> posts = postRepository.findAllWithComments();
         try {
             return posts.stream()
@@ -114,14 +127,34 @@ public class PostService {
         }
     }
 
+    @Transactional
+    public PostDto likePost(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found"));
+        if (post.getLikes() == null) {
+            post.setLikes(1);
+        } else {
+            post.setLikes(post.getLikes() + 1);
+        }
+        Post savedPost = postRepository.save(post);
+        return mapToDto(savedPost);
+    }
+
     // Utility method to map Post entity to PostDto
     private PostDto mapToDto(Post post) {
         PostDto postDto = new PostDto();
+        postDto.setId(post.getId());
         postDto.setContent(post.getContent());
         postDto.setLikes(post.getLikes());
         postDto.setComments(mapCommentsToDto(post.getComments()));
         postDto.setUserId(post.getUserId());
-        //  add more mappings here if needed
+
+        // Add likedBy information
+        if (post.getId() != null) {
+            List<Integer> likedByUsers = likeRepository.findUserIdsByPostId(post.getId());
+            postDto.setLikedBy(likedByUsers);
+        }
+
         return postDto;
     }
 
@@ -132,6 +165,7 @@ public class PostService {
                             CommentDto commentDto = new CommentDto();
                             commentDto.setId(comment.getId());
                             commentDto.setContent(comment.getContent());
+                            commentDto.setAuthorName(comment.getAuthorName());
                             return commentDto;
                         }).collect(Collectors.toList()))
                 .orElse(Collections.emptyList());

@@ -47,6 +47,7 @@ SELECT p.*, c.*
 FROM posts p
 LEFT JOIN comments c ON p.id = c.post_id;
 ```
+
 ##### Right Join:
 
 A right join returns all rows from the right table and the matching rows from the left table. If there is no match in
