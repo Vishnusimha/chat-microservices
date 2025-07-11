@@ -43,7 +43,8 @@ function App() {
 
     if (savedToken && savedUser) {
       setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      const userData = JSON.parse(savedUser);
+      setUser(userData);
     }
   }, []);
 
@@ -60,7 +61,7 @@ function App() {
     if (token) {
       handleFetchFeed();
     }
-  }, [token]);
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear results after 5 seconds
   useEffect(() => {
@@ -101,7 +102,12 @@ function App() {
       if (res.ok) {
         if (isLogin && data.token) {
           setToken(data.token);
-          setUser(data);
+          // Combine API response with form data (email from login form)
+          const userData = {
+            ...data,
+            email: formData.email, // Add email from form since API doesn't return it
+          };
+          setUser(userData);
           setAuthResult("Login successful!");
           setFormData({
             userName: "",
@@ -394,24 +400,38 @@ function App() {
       <nav className="navbar">
         <div className="navbar-brand">
           <h1 className="navbar-title">ChatSphere</h1>
+          <span className="navbar-tagline">Social Network</span>
         </div>
-        <div className="navbar-user">
-          <div className="navbar-user-info">
+        <div className="navbar-center">
+          <div className="navbar-user-badge">
             <div className="navbar-avatar">
-              {getInitials(user?.profileName || user?.userName)}
+              {getInitials(
+                user?.username ||
+                  user?.profileName ||
+                  user?.userName ||
+                  user?.email?.split("@")[0] ||
+                  "User"
+              )}
             </div>
-            <div className="navbar-user-details">
-              <div className="navbar-user-name">
-                {user?.profileName || user?.userName}
+            <div className="navbar-user-info">
+              <div className="navbar-welcome-text">
+                Welcome back,{" "}
+                <span className="navbar-username">
+                  {user?.username ||
+                    user?.profileName ||
+                    user?.userName ||
+                    user?.email?.split("@")[0] ||
+                    "User"}
+                </span>
               </div>
               <div className="navbar-user-email">{user?.email}</div>
             </div>
           </div>
-          <div className="navbar-welcome">
-            <span className="welcome-text">Welcome, </span>
-            <span className="welcome-username">
-              {user?.profileName || user?.userName}
-            </span>
+        </div>
+        <div className="navbar-actions">
+          <div className="navbar-user-status">
+            <span className="status-indicator online"></span>
+            <span className="status-text">Online</span>
           </div>
           <button className="navbar-logout" onClick={handleLogout}>
             <span className="logout-icon">🚪</span>
@@ -467,7 +487,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div>
+            <div className="feed-grid">
               {feed.map((item, i) => {
                 const postId = item.post?.id || item.id;
                 const isLiked = likedPosts.has(postId);
