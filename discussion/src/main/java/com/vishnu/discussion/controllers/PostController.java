@@ -2,10 +2,13 @@ package com.vishnu.discussion.controllers;
 
 import com.vishnu.discussion.data.CommentDto;
 import com.vishnu.discussion.data.PostDto;
+import com.vishnu.discussion.data.LikeDto;
+import com.vishnu.discussion.data.LikeResponse;
 import com.vishnu.discussion.exception.CommentNotFoundException;
 import com.vishnu.discussion.exception.PostNotFoundException;
 import com.vishnu.discussion.service.CommentService;
 import com.vishnu.discussion.service.PostService;
+import com.vishnu.discussion.service.LikeService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,6 +26,9 @@ public class PostController {
 
     @Autowired
     private CommentService commentService;
+
+    @Autowired
+    private LikeService likeService;
 
     @PostMapping("/create")
     public ResponseEntity<PostDto> createPost(@Valid @RequestBody PostDto postDto) {
@@ -113,12 +119,43 @@ public class PostController {
         }
     }
 
-    @PutMapping("/{postId}/like")
-    public ResponseEntity<PostDto> likePost(@PathVariable("postId") Long postId) {
-        PostDto updated = postService.likePost(postId);
-        if (updated == null) {
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<LikeResponse> addLike(@PathVariable("postId") Long postId,
+            @Valid @RequestBody LikeDto likeDto) {
+        try {
+            if (likeDto.getUserId() == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            int newLikeCount = likeService.addLike(postId, likeDto.getUserId());
+            LikeResponse response = LikeResponse.builder()
+                    .likes(newLikeCount)
+                    .message("Like added successfully")
+                    .build();
+            return ResponseEntity.ok(response);
+        } catch (PostNotFoundException e) {
             return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{postId}/like")
+    public ResponseEntity<LikeResponse> removeLike(@PathVariable("postId") Long postId,
+            @Valid @RequestBody LikeDto likeDto) {
+        try {
+            if (likeDto.getUserId() == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            int newLikeCount = likeService.removeLike(postId, likeDto.getUserId());
+            LikeResponse response = LikeResponse.builder()
+                    .likes(newLikeCount)
+                    .message("Like removed successfully")
+                    .build();
+            return ResponseEntity.ok(response);
+        } catch (PostNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
