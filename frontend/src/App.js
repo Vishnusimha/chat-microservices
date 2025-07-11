@@ -1,86 +1,145 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 
 const API_BASE = "http://localhost:8765"; // API Gateway base URL
 
 function App() {
   // Auth state
+  const [isLogin, setIsLogin] = useState(true);
   const [token, setToken] = useState("");
-  const [user, setUser] = useState(null); // {userId, username, ...}
-  // Registration state
-  const [regUserName, setRegUserName] = useState("");
-  const [regEmail, setRegEmail] = useState("");
-  const [regPassword, setRegPassword] = useState("");
-  const [regProfileName, setRegProfileName] = useState("");
-  const [regResult, setRegResult] = useState("");
-  // Login state
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginResult, setLoginResult] = useState("");
+  const [user, setUser] = useState(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    userName: "",
+    email: "",
+    password: "",
+    profileName: "",
+  });
+
+  // UI state
+  const [authResult, setAuthResult] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
   // Feed state
   const [feed, setFeed] = useState([]);
   const [feedResult, setFeedResult] = useState("");
-  // Post creation state
   const [postContent, setPostContent] = useState("");
   const [postResult, setPostResult] = useState("");
+
   // Comment state
   const [commentContent, setCommentContent] = useState("");
   const [commentResult, setCommentResult] = useState("");
   const [commentingPostId, setCommentingPostId] = useState(null);
 
-  // Registration handler
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setRegResult("Registering...");
-    try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userName: regUserName,
-          email: regEmail,
-          password: regPassword,
-          profileName: regProfileName,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) setRegResult("Registration successful!");
-      else setRegResult(data.message || data.error || "Registration failed");
-    } catch (err) {
-      setRegResult("Error: " + err.message);
+  // Liked posts state with counts
+  const [likedPosts, setLikedPosts] = useState(new Set());
+  const [likeCounts, setLikeCounts] = useState({});
+
+  // Load saved auth data on app start
+  useEffect(() => {
+    const savedToken = localStorage.getItem("chatSphereToken");
+    const savedUser = localStorage.getItem("chatSphereUser");
+
+    if (savedToken && savedUser) {
+      setToken(savedToken);
+      setUser(JSON.parse(savedUser));
     }
+  }, []);
+
+  // Save auth data to localStorage
+  useEffect(() => {
+    if (token && user) {
+      localStorage.setItem("chatSphereToken", token);
+      localStorage.setItem("chatSphereUser", JSON.stringify(user));
+    }
+  }, [token, user]);
+
+  // Auto-load feed when token changes
+  useEffect(() => {
+    if (token) {
+      handleFetchFeed();
+    }
+  }, [token]);
+
+  // Clear results after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAuthResult("");
+      setPostResult("");
+      setCommentResult("");
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [authResult, postResult, commentResult]);
+
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
 
-  // Login handler
-  const handleLogin = async (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
-    setLoginResult("Logging in...");
+    setIsLoading(true);
+    setAuthResult("");
+
+    const endpoint = isLogin ? "/auth/login" : "/auth/register";
+    const payload = isLogin
+      ? { email: formData.email, password: formData.password }
+      : formData;
+
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        body: JSON.stringify(payload),
       });
+
       const data = await res.json();
-      if (res.ok && data.token) {
-        setToken(data.token);
-        setUser(data);
-        setLoginResult("Login successful!");
+
+      if (res.ok) {
+        if (isLogin && data.token) {
+          setToken(data.token);
+          setUser(data);
+          setAuthResult("Login successful!");
+          setFormData({
+            userName: "",
+            email: "",
+            password: "",
+            profileName: "",
+          });
+        } else if (!isLogin) {
+          setAuthResult("Registration successful! Please login.");
+          setIsLogin(true);
+          setFormData({
+            userName: "",
+            email: "",
+            password: "",
+            profileName: "",
+          });
+        }
       } else {
-        setLoginResult(data.message || data.error || "Login failed");
+        setAuthResult(
+          data.message ||
+            data.error ||
+            `${isLogin ? "Login" : "Registration"} failed`
+        );
       }
     } catch (err) {
-      setLoginResult("Error: " + err.message);
+      setAuthResult("Error: " + err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Fetch feed
   const handleFetchFeed = async () => {
     setFeedResult("Loading feed...");
     try {
       const res = await fetch(`${API_BASE}/feed/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       if (res.ok) {
         const data = await res.json();
         setFeed(data);
@@ -94,14 +153,17 @@ function App() {
     }
   };
 
-  // Create post
   const handleCreatePost = async (e) => {
     e.preventDefault();
+    if (!postContent.trim()) return;
+
     setPostResult("Posting...");
+
     if (!user || !user.userId) {
       setPostResult("User info missing. Please login again.");
       return;
     }
+
     try {
       const res = await fetch(`${API_BASE}/discussion/api/posts/create`, {
         method: "POST",
@@ -111,8 +173,9 @@ function App() {
         },
         body: JSON.stringify({ content: postContent, userId: user.userId }),
       });
+
       if (res.ok) {
-        setPostResult("Post created!");
+        setPostResult("Post created successfully!");
         setPostContent("");
         handleFetchFeed();
       } else {
@@ -124,14 +187,17 @@ function App() {
     }
   };
 
-  // Add comment
   const handleAddComment = async (e) => {
     e.preventDefault();
+    if (!commentContent.trim()) return;
+
     setCommentResult("Posting comment...");
+
     if (!user || !user.userId) {
       setCommentResult("User info missing. Please login again.");
       return;
     }
+
     try {
       const res = await fetch(
         `${API_BASE}/discussion/api/posts/${commentingPostId}/comment`,
@@ -147,6 +213,7 @@ function App() {
           }),
         }
       );
+
       if (res.ok) {
         setCommentResult("Comment added!");
         setCommentContent("");
@@ -161,142 +228,354 @@ function App() {
     }
   };
 
-  return (
-    <div
-      style={{ maxWidth: 600, margin: "2rem auto", fontFamily: "sans-serif" }}
-    >
-      <h2>Register</h2>
-      <form onSubmit={handleRegister}>
-        <input
-          placeholder="Username"
-          value={regUserName}
-          onChange={(e) => setRegUserName(e.target.value)}
-          required
-        />
-        <input
-          placeholder="Email"
-          value={regEmail}
-          onChange={(e) => setRegEmail(e.target.value)}
-          required
-        />
-        <input
-          placeholder="Password"
-          type="password"
-          value={regPassword}
-          onChange={(e) => setRegPassword(e.target.value)}
-          required
-        />
-        <input
-          placeholder="Profile Name"
-          value={regProfileName}
-          onChange={(e) => setRegProfileName(e.target.value)}
-          required
-        />
-        <button type="submit">Register</button>
-      </form>
-      <div>{regResult}</div>
+  const handleLike = async (postId) => {
+    const isCurrentlyLiked = likedPosts.has(postId);
+    const newLikedPosts = new Set(likedPosts);
+    const newLikeCounts = { ...likeCounts };
 
-      <h2>Login</h2>
-      <form onSubmit={handleLogin}>
-        <input
-          placeholder="Email"
-          value={loginEmail}
-          onChange={(e) => setLoginEmail(e.target.value)}
-          required
-        />
-        <input
-          placeholder="Password"
-          type="password"
-          value={loginPassword}
-          onChange={(e) => setLoginPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Login</button>
-      </form>
-      <div>{loginResult}</div>
+    if (isCurrentlyLiked) {
+      newLikedPosts.delete(postId);
+      newLikeCounts[postId] = Math.max(0, (newLikeCounts[postId] || 0) - 1);
+    } else {
+      newLikedPosts.add(postId);
+      newLikeCounts[postId] = (newLikeCounts[postId] || 0) + 1;
+    }
 
-      {token && (
-        <>
-          <h2>Feed</h2>
-          <button onClick={handleFetchFeed}>Load Feed</button>
-          <div>{feedResult}</div>
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {feed.map((item, i) => (
-              <li
-                key={i}
-                style={{
-                  border: "1px solid #ccc",
-                  margin: "1rem 0",
-                  padding: "1rem",
-                  borderRadius: 8,
-                }}
-              >
-                <div>
-                  <b>{item.profileName || "User"}</b>
+    setLikedPosts(newLikedPosts);
+    setLikeCounts(newLikeCounts);
+
+    // TODO: Send like/unlike to backend API
+    // try {
+    //   const res = await fetch(`${API_BASE}/discussion/api/posts/${postId}/like`, {
+    //     method: isCurrentlyLiked ? 'DELETE' : 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       'Authorization': `Bearer ${token}`
+    //     },
+    //     body: JSON.stringify({ userId: user.userId })
+    //   });
+    // } catch (err) {
+    //   console.error('Error updating like:', err);
+    // }
+  };
+
+  const handleLogout = () => {
+    setToken("");
+    setUser(null);
+    setFeed([]);
+    setLikedPosts(new Set());
+    setLikeCounts({});
+    setFormData({ userName: "", email: "", password: "", profileName: "" });
+
+    // Clear localStorage
+    localStorage.removeItem("chatSphereToken");
+    localStorage.removeItem("chatSphereUser");
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const getStatusClass = (message) => {
+    if (
+      message.includes("successful") ||
+      message.includes("added") ||
+      message.includes("created")
+    ) {
+      return "status-success";
+    } else if (message.includes("Error") || message.includes("failed")) {
+      return "status-error";
+    } else {
+      return "status-loading";
+    }
+  };
+
+  if (!token) {
+    return (
+      <div className="app-container">
+        <div className="app-header">
+          <h1 className="app-title">ChatSphere</h1>
+          <p className="app-subtitle">
+            Connect, Share, and Engage with Your Community
+          </p>
+        </div>
+
+        <div className="auth-container">
+          <div className="auth-toggle">
+            <button
+              className={isLogin ? "active" : ""}
+              onClick={() => setIsLogin(true)}
+            >
+              Sign In
+            </button>
+            <button
+              className={!isLogin ? "active" : ""}
+              onClick={() => setIsLogin(false)}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          <form onSubmit={handleAuth} className="form-container">
+            {!isLogin && (
+              <>
+                <div className="form-group">
+                  <input
+                    type="text"
+                    name="userName"
+                    className="form-input"
+                    placeholder="Username"
+                    value={formData.userName}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
-                <div>{item.post?.content || item.content}</div>
-                <div style={{ fontSize: "0.9em", color: "#555" }}>
-                  User ID: {item.userId}
+                <div className="form-group">
+                  <input
+                    type="text"
+                    name="profileName"
+                    className="form-input"
+                    placeholder="Display Name"
+                    value={formData.profileName}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
-                {item.post?.comments && item.post.comments.length > 0 && (
-                  <div style={{ marginTop: 8 }}>
-                    <b>Comments:</b>
-                    <ul style={{ paddingLeft: 20 }}>
-                      {item.post.comments.map((c, ci) => (
-                        <li key={ci}>
-                          {c.content}{" "}
-                          <span style={{ color: "#888" }}>
-                            by user {c.userId}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <button
-                  style={{ marginTop: 8 }}
-                  onClick={() => {
-                    setCommentingPostId(item.post?.id || item.id);
-                    setCommentContent("");
-                  }}
-                >
-                  Comment
-                </button>
-                {commentingPostId === (item.post?.id || item.id) && (
-                  <form onSubmit={handleAddComment} style={{ marginTop: 8 }}>
-                    <input
-                      placeholder="Comment"
-                      value={commentContent}
-                      onChange={(e) => setCommentContent(e.target.value)}
-                      required
-                    />
-                    <button type="submit">Add</button>
-                    <button
-                      type="button"
-                      onClick={() => setCommentingPostId(null)}
-                    >
-                      Cancel
-                    </button>
-                  </form>
-                )}
-              </li>
-            ))}
-          </ul>
+              </>
+            )}
 
-          <h2>Create Post</h2>
-          <form onSubmit={handleCreatePost}>
-            <input
-              placeholder="Post content"
-              value={postContent}
-              onChange={(e) => setPostContent(e.target.value)}
-              required
-            />
-            <button type="submit">Post</button>
+            <div className="form-group">
+              <input
+                type="email"
+                name="email"
+                className="form-input"
+                placeholder="Email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <input
+                type="password"
+                name="password"
+                className="form-input"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <button type="submit" className="form-button" disabled={isLoading}>
+              {isLoading ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"}
+            </button>
           </form>
-          <div>{postResult}</div>
-          <div>{commentResult}</div>
-        </>
-      )}
+
+          {authResult && (
+            <div className={`status-message ${getStatusClass(authResult)}`}>
+              {authResult}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-container">
+      <nav className="navbar">
+        <div className="navbar-brand">
+          <h1 className="navbar-title">ChatSphere</h1>
+        </div>
+        <div className="navbar-user">
+          <div className="navbar-user-info">
+            <div className="navbar-avatar">
+              {getInitials(user?.profileName || user?.userName)}
+            </div>
+            <div className="navbar-user-details">
+              <div className="navbar-user-name">
+                {user?.profileName || user?.userName}
+              </div>
+              <div className="navbar-user-email">{user?.email}</div>
+            </div>
+          </div>
+          <div className="navbar-welcome">
+            <span className="welcome-text">Welcome, </span>
+            <span className="welcome-username">
+              {user?.profileName || user?.userName}
+            </span>
+          </div>
+          <button className="navbar-logout" onClick={handleLogout}>
+            <span className="logout-icon">🚪</span>
+            Logout
+          </button>
+        </div>
+      </nav>
+
+      <div className="dashboard-content">
+        <div className="create-post-container">
+          <h2 className="create-post-title">What's on your mind?</h2>
+          <form onSubmit={handleCreatePost}>
+            <div className="form-group">
+              <textarea
+                className="post-textarea"
+                placeholder="Share your thoughts..."
+                value={postContent}
+                onChange={(e) => setPostContent(e.target.value)}
+                required
+              />
+            </div>
+            <button type="submit" className="form-button">
+              Share Post
+            </button>
+          </form>
+
+          {postResult && (
+            <div className={`status-message ${getStatusClass(postResult)}`}>
+              {postResult}
+            </div>
+          )}
+        </div>
+
+        <div className="feed-container">
+          <div className="feed-header">
+            <h2 className="feed-title">Feed</h2>
+            <button className="refresh-button" onClick={handleFetchFeed}>
+              Refresh
+            </button>
+          </div>
+
+          {feedResult && (
+            <div className={`status-message ${getStatusClass(feedResult)}`}>
+              {feedResult}
+            </div>
+          )}
+
+          {feed.length === 0 ? (
+            <div className="empty-feed">
+              <div className="empty-feed-icon">📝</div>
+              <div className="empty-feed-text">
+                No posts yet. Be the first to share something!
+              </div>
+            </div>
+          ) : (
+            <div>
+              {feed.map((item, i) => {
+                const postId = item.post?.id || item.id;
+                const isLiked = likedPosts.has(postId);
+                const likeCount = likeCounts[postId] || 0;
+
+                return (
+                  <div key={i} className="post-item">
+                    <div className="post-header">
+                      <div className="post-avatar">
+                        {getInitials(item.profileName)}
+                      </div>
+                      <div className="post-user-info">
+                        <div className="post-username">
+                          {item.profileName || "Anonymous"}
+                        </div>
+                        <div className="post-userid">
+                          User ID: {item.userId}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="post-content">
+                      {item.post?.content || item.content}
+                    </div>
+
+                    <div className="post-actions">
+                      <button
+                        className={`action-button ${isLiked ? "liked" : ""}`}
+                        onClick={() => handleLike(postId)}
+                      >
+                        <span className="action-icon">
+                          {isLiked ? "❤️" : "🤍"}
+                        </span>
+                        <span className="action-text">
+                          {likeCount > 0
+                            ? `${likeCount} Like${likeCount > 1 ? "s" : ""}`
+                            : "Like"}
+                        </span>
+                      </button>
+                      <button
+                        className="action-button"
+                        onClick={() => {
+                          setCommentingPostId(postId);
+                          setCommentContent("");
+                        }}
+                      >
+                        <span className="action-icon">💬</span>
+                        <span className="action-text">Comment</span>
+                      </button>
+                    </div>
+
+                    {item.post?.comments && item.post.comments.length > 0 && (
+                      <div className="comments-section">
+                        <div className="comments-title">
+                          <span className="comments-icon">💬</span>
+                          Comments ({item.post.comments.length})
+                        </div>
+                        {item.post.comments.map((comment, ci) => (
+                          <div key={ci} className="comment-item">
+                            <div className="comment-content">
+                              {comment.content}
+                            </div>
+                            <div className="comment-author">
+                              by user {comment.userId}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {commentingPostId === postId && (
+                      <form
+                        onSubmit={handleAddComment}
+                        className="comment-form"
+                      >
+                        <input
+                          type="text"
+                          className="comment-input"
+                          placeholder="Write a comment..."
+                          value={commentContent}
+                          onChange={(e) => setCommentContent(e.target.value)}
+                          required
+                        />
+                        <button type="submit" className="comment-button">
+                          Post
+                        </button>
+                        <button
+                          type="button"
+                          className="cancel-button"
+                          onClick={() => setCommentingPostId(null)}
+                        >
+                          Cancel
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {commentResult && (
+            <div className={`status-message ${getStatusClass(commentResult)}`}>
+              {commentResult}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
