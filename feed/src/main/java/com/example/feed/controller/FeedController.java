@@ -30,8 +30,8 @@ public class FeedController {
         return ResponseEntity.ok(feedService.getFeed());
     }
 
-    @GetMapping("user/{userName}")
-    public ResponseEntity<List<FeedDto>> getPostsOfUserByName(@PathVariable String userName) {
+    @GetMapping("/user/{userName}")
+    public ResponseEntity<List<FeedDto>> getPostsOfUserByName(@PathVariable("userName") String userName) {
         return ResponseEntity.ok(feedService.getPostsOfUserByName(userName));
     }
 

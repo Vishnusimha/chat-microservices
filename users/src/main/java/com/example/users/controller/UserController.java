@@ -1,86 +1,99 @@
 package com.example.users.controller;
 
-import com.example.users.data.User;
+import com.example.users.dto.LoginRequest;
+import com.example.users.dto.RegisterRequest;
+import com.example.users.model.User;
+import com.example.users.repository.UserRepository;
+import com.example.users.service.UserService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("users")
+@RequestMapping("/api/users")
 public class UserController {
 
-    @Value("${user.test.string: This is Default Value for user.test.string}")
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Value("${user.test.string:This is Default Value for user.test.string}")
     private String userTestString;
 
-    @Value("${external.list: four,five,six,four}")
-    private List<String> sampleList; // for getting values as a List from external config
+    @Value("${external.list:four,five,six,four}")
+    private List<String> sampleList;
 
-    @Value("#{${dbValues}}")
-    private Map<String, String> dbValues; // for getting values as a Map from external config
+    @Value("#{${dbValues:{'key': 'value'}}}")
+    private Map<String, String> dbValues;
 
-    @GetMapping("/greeting")
-    public ResponseEntity<String> getGreeting() {
-        return ResponseEntity.ok(userTestString + dbValues);
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        try {
+            User registeredUser = userService.registerUser(request);
+            return ResponseEntity.ok(Map.of(
+                    "message", "User registered successfully",
+                    "userId", registeredUser.getId(),
+                    "email", registeredUser.getEmail(),
+                    "userName", registeredUser.getUserName()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An error occurred during registration: " + e.getMessage()));
+        }
     }
 
-    @GetMapping("/sampleList")
-    public ResponseEntity<List<String>> getSampleList() {
-        return ResponseEntity.ok(sampleList);
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        try {
+            User user = userService.loginUser(request);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Login successful",
+                    "userId", user.getId(),
+                    "username", user.getUserName(),
+                    "email", user.getEmail()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/all")
-    public List<User> getUsers() {
-        System.out.println("GET ALL USERS ");
-        return List.of(
-                new User(1, "vishnu", "vish"),
-                new User(2, "simha", "simba"),
-                new User(3, "sunith", "Sagar"),
-                new User(8, "testuser", "Test User"),
-                new User(10, "Sample", "SampleVName"));
+    public ResponseEntity<List<User>> getUsers() {
+        return ResponseEntity.ok(userRepository.findAll());
     }
 
-    @GetMapping("user/{userId}")
-    public ResponseEntity<User> getUserWithUserId(@PathVariable("userId") int userId) {
-        System.out.println("GET USER WITH USER ID = " + userId);
-        List<User> userList = List.of(
-                new User(1, "vishnu", "vish"),
-                new User(2, "simha", "simba"),
-                new User(3, "sunith", "Sagar"),
-                new User(10, "Sample", "SampleVName"));
-        User user = userList.stream()
-                .filter(usr -> usr.getUserId() == userId)
-                .findAny()
-                .orElse(null);
-
-        if (user == null) {
-            return ResponseEntity.notFound().build();
-        }
-        System.out.println("USER Details = " + user.getUserName() + user.getUserId() + user.getProfileName());
-        return ResponseEntity.ok(user);
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUserById(@PathVariable("id") Long id) {
+        return userRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/{userName}")
-    public ResponseEntity<User> getUserWithUserName(@PathVariable("userName") String userName) {
-        System.out.println("GET USER WITH USER userName = " + userName);
-        List<User> userList = List.of(
-                new User(1, "vishnu", "vish"),
-                new User(2, "simha", "simba"),
-                new User(3, "sunith", "Sagar"),
-                new User(10, "Sample", "SampleVName"));
-        User user = userList.stream()
-                .filter(user1 -> user1.getUserName().equals(userName))
-                .findAny()
-                .orElse(null);
+    @GetMapping("/name/{userName}")
+    public ResponseEntity<?> getUserByUserName(@PathVariable("userName") String userName) {
+        return userRepository.findByUserName(userName)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-        if (user == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(user);
+    @GetMapping("/greeting")
+    public ResponseEntity<Map<String, Object>> getGreeting() {
+        return ResponseEntity.ok(Map.of(
+                "greeting", userTestString,
+                "dbValues", dbValues));
+    }
+
+    @GetMapping("/config/list")
+    public ResponseEntity<List<String>> getConfigList() {
+        return ResponseEntity.ok(sampleList);
     }
 }

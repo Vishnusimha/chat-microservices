@@ -8,6 +8,7 @@ import com.vishnu.discussion.exception.PostCreationException;
 import com.vishnu.discussion.exception.PostNotFoundException;
 import com.vishnu.discussion.repository.CommentRepository;
 import com.vishnu.discussion.repository.PostRepository;
+import com.vishnu.discussion.repository.LikeRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,9 @@ public class PostService {
 
     @Autowired
     private CommentRepository commentRepository;
+
+    @Autowired
+    private LikeRepository likeRepository;
 
     @Transactional
     public PostDto createPost(PostDto postDto) {
@@ -77,7 +81,7 @@ public class PostService {
     }
 
     @Transactional
-    public List<PostDto> getPostsByUserId(Long userId) {
+    public List<PostDto> getPostsByUserId(Integer userId) {
         log.info("postService - getPostsByUserId");
         List<Post> postsFromRepo = postRepository.findAllByUserId(userId).stream().toList();
         List<PostDto> posts = postsFromRepo.stream()
@@ -144,7 +148,13 @@ public class PostService {
         postDto.setLikes(post.getLikes());
         postDto.setComments(mapCommentsToDto(post.getComments()));
         postDto.setUserId(post.getUserId());
-        // add more mappings here if needed
+
+        // Add likedBy information
+        if (post.getId() != null) {
+            List<Integer> likedByUsers = likeRepository.findUserIdsByPostId(post.getId());
+            postDto.setLikedBy(likedByUsers);
+        }
+
         return postDto;
     }
 
@@ -155,6 +165,7 @@ public class PostService {
                             CommentDto commentDto = new CommentDto();
                             commentDto.setId(comment.getId());
                             commentDto.setContent(comment.getContent());
+                            commentDto.setAuthorName(comment.getAuthorName());
                             return commentDto;
                         }).collect(Collectors.toList()))
                 .orElse(Collections.emptyList());
