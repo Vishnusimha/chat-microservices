@@ -35,7 +35,6 @@ function App() {
   // Liked posts state with counts
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [likeCounts, setLikeCounts] = useState({});
-  const [backendSupportsLikes, setBackendSupportsLikes] = useState(false);
 
   // Load saved auth data on app start
   useEffect(() => {
@@ -149,26 +148,15 @@ function App() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("Backend feed data:", data);
         setFeed(data);
 
         // Initialize like counts from backend data
         const initialLikeCounts = {};
         const initialLikedPosts = new Set();
 
-        data.forEach((item, index) => {
+        data.forEach((item) => {
           const postId = item.post?.id || item.id;
           const post = item.post || item;
-
-          console.log(`Post ${index}:`, {
-            postId,
-            post,
-            item,
-            likes: post.likes,
-            likedBy: post.likedBy,
-            likesCount: post.likesCount,
-            likeCount: post.likeCount,
-          });
 
           // Try multiple possible field names for like count
           const likeCount =
@@ -199,9 +187,6 @@ function App() {
             initialLikedPosts.add(postId);
           }
         });
-
-        console.log("Initial like counts:", initialLikeCounts);
-        console.log("Initial liked posts:", initialLikedPosts);
 
         setLikeCounts(initialLikeCounts);
         setLikedPosts(initialLikedPosts);
@@ -291,12 +276,7 @@ function App() {
   };
 
   const handleLike = async (postId) => {
-    console.log("handleLike called with postId:", postId);
-    console.log("Current user:", user);
-
     const isCurrentlyLiked = likedPosts.has(postId);
-    console.log("Is currently liked:", isCurrentlyLiked);
-
     const newLikedPosts = new Set(likedPosts);
     const newLikeCounts = { ...likeCounts };
 
@@ -308,9 +288,6 @@ function App() {
       newLikedPosts.add(postId);
       newLikeCounts[postId] = (newLikeCounts[postId] || 0) + 1;
     }
-
-    console.log("Updated like counts:", newLikeCounts);
-    console.log("Updated liked posts:", newLikedPosts);
 
     setLikedPosts(newLikedPosts);
     setLikeCounts(newLikeCounts);
@@ -328,15 +305,12 @@ function App() {
       const method = isCurrentlyLiked ? "DELETE" : "POST";
       const payload = { userId: user.userId };
 
-      console.log("Making API call:", { method, payload });
-
       let apiSuccess = false;
       let responseData = null;
 
       // Try each endpoint until one works
       for (const endpoint of possibleEndpoints) {
         try {
-          console.log("Trying endpoint:", endpoint);
           const res = await fetch(endpoint, {
             method,
             headers: {
@@ -346,64 +320,28 @@ function App() {
             body: JSON.stringify(payload),
           });
 
-          console.log("API response status:", res.status);
-
           if (res.ok) {
             responseData = await res.json();
-            console.log("API response data:", responseData);
             apiSuccess = true;
-            setBackendSupportsLikes(true); // Mark backend as supporting likes
             break;
           } else if (res.status === 404) {
-            console.log("Endpoint not found, trying next...");
-            continue;
+            continue; // Try next endpoint
           } else {
-            responseData = await res.json();
-            console.error("API call failed:", responseData);
-            break;
+            break; // Other error, stop trying
           }
         } catch (endpointError) {
-          console.log("Endpoint error:", endpointError.message);
-          continue;
+          continue; // Try next endpoint
         }
       }
 
-      if (!apiSuccess) {
-        console.warn("⚠️  BACKEND LIKES API NOT IMPLEMENTED");
-        console.log("📝 Frontend is working in LOCAL SIMULATION MODE");
-        console.log("🔧 To fix: Implement these endpoints in your backend:");
-        console.log("   POST /discussion/api/posts/{id}/like");
-        console.log("   DELETE /discussion/api/posts/{id}/like");
-        console.log(
-          "💡 Likes will persist in UI but not in database until backend is ready"
-        );
-
-        // Show user notification that backend isn't ready
-        setPostResult(
-          "⚠️ Like saved locally - backend API needed for persistence"
-        );
-        setTimeout(() => setPostResult(""), 3000);
-      } else {
-        // Update with actual backend response if available
-        if (responseData && responseData.likes !== undefined) {
-          console.log("✅ Backend like count updated:", responseData.likes);
-          setLikeCounts((prev) => ({ ...prev, [postId]: responseData.likes }));
-        }
-
-        console.log("✅ LIKE SUCCESSFULLY SAVED TO BACKEND!");
+      if (apiSuccess && responseData && responseData.likes !== undefined) {
+        // Update with actual backend response
+        setLikeCounts((prev) => ({ ...prev, [postId]: responseData.likes }));
       }
+      // If API fails, we keep the optimistic update (local simulation mode)
     } catch (err) {
+      // If error occurs, we keep the optimistic update (local simulation mode)
       console.error("Error updating like:", err);
-      // Revert optimistic update on error
-      if (isCurrentlyLiked) {
-        newLikedPosts.add(postId);
-        newLikeCounts[postId] = (newLikeCounts[postId] || 0) + 1;
-      } else {
-        newLikedPosts.delete(postId);
-        newLikeCounts[postId] = Math.max(0, (newLikeCounts[postId] || 0) - 1);
-      }
-      setLikedPosts(newLikedPosts);
-      setLikeCounts(newLikeCounts);
     }
   };
 
@@ -413,7 +351,6 @@ function App() {
     setFeed([]);
     setLikedPosts(new Set());
     setLikeCounts({});
-    setBackendSupportsLikes(false);
     setFormData({ userName: "", email: "", password: "", profileName: "" });
 
     // Clear localStorage
@@ -611,23 +548,9 @@ function App() {
         <div className="feed-container">
           <div className="feed-header">
             <h2 className="feed-title">Feed</h2>
-            <div className="feed-actions">
-              <button className="refresh-button" onClick={handleFetchFeed}>
-                Refresh
-              </button>
-              {!backendSupportsLikes && (
-                <div className="backend-status">
-                  <span className="status-indicator warning"></span>
-                  <span className="status-text">Likes: Local Mode</span>
-                </div>
-              )}
-              {backendSupportsLikes && (
-                <div className="backend-status">
-                  <span className="status-indicator success"></span>
-                  <span className="status-text">Likes: Backend Ready</span>
-                </div>
-              )}
-            </div>
+            <button className="refresh-button" onClick={handleFetchFeed}>
+              Refresh
+            </button>
           </div>
 
           {feedResult && (
@@ -649,14 +572,6 @@ function App() {
                 const postId = item.post?.id || item.id;
                 const isLiked = likedPosts.has(postId);
                 const likeCount = likeCounts[postId] || 0;
-
-                // Debug logging for each post
-                console.log(`Rendering post ${i}:`, {
-                  postId,
-                  isLiked,
-                  likeCount,
-                  item: item,
-                });
 
                 return (
                   <div key={i} className="post-item">

@@ -377,6 +377,33 @@ body {
   margin-bottom: 16px;
 }
 
+.feed-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.backend-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 0.8rem;
+}
+
+.status-indicator.warning {
+  background: #ff9800;
+  box-shadow: 0 0 6px rgba(255, 152, 0, 0.4);
+}
+
+.status-indicator.success {
+  background: #4caf50;
+  box-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
+}
+
 .feed-title {
   font-size: 1.3rem;
   font-weight: 700;
