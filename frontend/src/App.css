@@ -1,0 +1,27 @@
+/* Minimal styling for chat microservices frontend */
+body {
+  background: #f7f7f7;
+}
+
+div {
+  box-sizing: border-box;
+}
+
+form {
+  margin-bottom: 1rem;
+}
+
+input,
+button {
+  margin: 0.25rem;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+button {
+  cursor: pointer;
+}
+
+h2 {
+  margin-top: 2rem;
+}
