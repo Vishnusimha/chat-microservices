@@ -146,8 +146,22 @@ services:
         condition: service_healthy
       feed-service:
         condition: service_healthy
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chat-frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - chat-network
+    depends_on:
+      - api-gateway
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8765/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 5

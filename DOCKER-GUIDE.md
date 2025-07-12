@@ -8,14 +8,14 @@ This guide provides comprehensive instructions for running the Chat Microservice
 - **Docker Compose** (2.0 or later) - Usually included with Docker Desktop
 - **Git** - For cloning the repository
 - **Minimum 4GB RAM** - Recommended for running all services
-- **Available Ports**: 3306, 8080, 8081, 8083, 8761, 8765
+- **Available Ports**: 3307, 8080, 8081, 8083, 8761, 8765, 3000
 
 ## 🏗️ Architecture Overview
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   MySQL DB      │    │ Discovery Server│    │   API Gateway   │
-│   Port: 3306    │    │   Port: 8761    │    │   Port: 8765    │
+│   Port: 3307    │    │   Port: 8761    │    │   Port: 8765    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                               │                        │
                               │                        │
@@ -23,6 +23,12 @@ This guide provides comprehensive instructions for running the Chat Microservice
 │  Users Service  │    │Discussion Service│   │  Feed Service   │
 │   Port: 8081    │    │   Port: 8083    │    │   Port: 8080    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
+                              │
+                              │
+                    ┌─────────────────┐
+                    │ React Frontend  │
+                    │   Port: 3000    │
+                    └─────────────────┘
 ```
 
 ## 🚀 Quick Start
@@ -167,17 +173,19 @@ Once all services are running, you can access:
 
 | Service                | URL                   | Description                                    |
 | ---------------------- | --------------------- | ---------------------------------------------- |
+| **React Frontend**     | http://localhost:3000 | React web application frontend                 |
 | **Eureka Dashboard**   | http://localhost:8761 | Service discovery dashboard                    |
 | **API Gateway**        | http://localhost:8765 | Main entry point for API calls                 |
 | **Users Service**      | http://localhost:8081 | User management service                        |
 | **Discussion Service** | http://localhost:8083 | Posts and comments service                     |
 | **Feed Service**       | http://localhost:8080 | Aggregated feed service                        |
-| **MySQL Database**     | localhost:3306        | Database (username: root, password: MySQL@123) |
+| **MySQL Database**     | localhost:3307        | Database (username: root, password: MySQL@123) |
 
 ### Health Check URLs
 
 | Service            | Health Check URL                      |
 | ------------------ | ------------------------------------- |
+| React Frontend     | http://localhost:3000                 |
 | Discovery Server   | http://localhost:8761/actuator/health |
 | API Gateway        | http://localhost:8765/actuator/health |
 | Users Service      | http://localhost:8081/actuator/health |
@@ -235,7 +243,7 @@ The Docker setup uses environment-specific configuration files:
 - **Database**: `test`
 - **Username**: `root`
 - **Password**: `MySQL@123`
-- **Port**: `3306`
+- **Port**: `3307` (external), `3306` (internal Docker network)
 - **Volume**: `mysql_data` (persistent storage)
 
 ## 🐛 Troubleshooting
@@ -245,7 +253,7 @@ The Docker setup uses environment-specific configuration files:
 1. **Port Conflicts**
    ```bash
    # Check if ports are in use
-   lsof -i :8761 -i :8765 -i :8081 -i :8083 -i :8080 -i :3306
+   lsof -i :8761 -i :8765 -i :8081 -i :8083 -i :8080 -i :3307
    
    # Stop conflicting services
    ./stop-docker.sh --clean
