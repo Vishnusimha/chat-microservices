@@ -1,0 +1,48 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Discovery Server
+  - job_name: 'discovery-server'
+    static_configs:
+      - targets: ['discovery-server:8761']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+
+  # API Gateway
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:8765']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+
+  # Users Service
+  - job_name: 'users-service'
+    static_configs:
+      - targets: ['users-service:8081']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+
+  # Discussion Service
+  - job_name: 'discussion-service'
+    static_configs:
+      - targets: ['discussion-service:8083']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+
+  # Feed Service
+  - job_name: 'feed-service'
+    static_configs:
+      - targets: ['feed-service:8080']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

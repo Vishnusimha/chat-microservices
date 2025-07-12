@@ -1,0 +1,724 @@
+openapi: 3.0.3
+info:
+  title: Chat Microservices API
+  description: |
+    A comprehensive chat application built with Spring Boot microservices architecture.
+    
+    ## Features
+    - User management and authentication
+    - Real-time messaging and discussions
+    - Feed aggregation
+    - Notification system
+    - Configuration management
+    
+    ## Architecture
+    - **API Gateway**: Single entry point for all client requests
+    - **Service Discovery**: Eureka server for service registration
+    - **Microservices**: Independent, scalable services
+    - **Database**: MySQL for persistent data
+    - **Caching**: Redis for performance optimization
+    - **Monitoring**: Prometheus and Grafana for observability
+    
+    ## Security
+    All endpoints (except auth) require Bearer token authentication.
+    
+  version: 1.0.0
+  contact:
+    name: Chat Microservices Team
+    email: support@chat-microservices.com
+    url: https://github.com/Vishnusimha/chat-microservices
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8765
+    description: Local development server
+  - url: https://api.chat-microservices.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  # Authentication endpoints
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+            examples:
+              example1:
+                summary: Basic user registration
+                value:
+                  userName: "johndoe"
+                  email: "john.doe@example.com"
+                  password: "SecurePassword123!"
+                  profileName: "John Doe"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRegistrationResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user and return JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              example1:
+                summary: User login
+                value:
+                  email: "john.doe@example.com"
+                  password: "SecurePassword123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # User management endpoints
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: Get all users
+      description: Retrieve a list of all users
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get user by ID
+      description: Retrieve a specific user by their ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/name/{userName}:
+    get:
+      tags:
+        - Users
+      summary: Get user by username
+      description: Retrieve a specific user by their username
+      parameters:
+        - name: userName
+          in: path
+          required: true
+          description: Username
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+
+  # Discussion endpoints
+  /discussion/api/posts:
+    get:
+      tags:
+        - Discussion
+      summary: Get all posts
+      description: Retrieve all posts with comments
+      responses:
+        '200':
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+    post:
+      tags:
+        - Discussion
+      summary: Create a new post
+      description: Create a new discussion post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: Invalid request data
+
+  /discussion/api/posts/{postId}:
+    get:
+      tags:
+        - Discussion
+      summary: Get post by ID
+      description: Retrieve a specific post by ID
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: Post ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Post details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '404':
+          description: Post not found
+    put:
+      tags:
+        - Discussion
+      summary: Update post
+      description: Update an existing post
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: Post ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostRequest'
+      responses:
+        '200':
+          description: Post updated successfully
+        '404':
+          description: Post not found
+    delete:
+      tags:
+        - Discussion
+      summary: Delete post
+      description: Delete a specific post
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: Post ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Post deleted successfully
+        '404':
+          description: Post not found
+
+  /discussion/api/posts/{postId}/comment:
+    post:
+      tags:
+        - Discussion
+      summary: Add comment to post
+      description: Add a comment to a specific post
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: Post ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Comment added successfully
+        '404':
+          description: Post not found
+
+  /discussion/api/posts/userId/{userId}:
+    get:
+      tags:
+        - Discussion
+      summary: Get posts by user ID
+      description: Retrieve all posts created by a specific user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of user posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+
+  # Feed endpoints
+  /feed/all:
+    get:
+      tags:
+        - Feed
+      summary: Get aggregated feed
+      description: Retrieve aggregated feed with user profiles and posts
+      responses:
+        '200':
+          description: Aggregated feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FeedItem'
+
+  /feed/user/{userName}:
+    get:
+      tags:
+        - Feed
+      summary: Get user-specific feed
+      description: Retrieve feed for a specific user
+      parameters:
+        - name: userName
+          in: path
+          required: true
+          description: Username
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FeedItem'
+
+  # Notification endpoints
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get user notifications
+      description: Retrieve notifications for the authenticated user
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+    post:
+      tags:
+        - Notifications
+      summary: Send notification
+      description: Send a notification to users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationRequest'
+      responses:
+        '201':
+          description: Notification sent successfully
+
+  /notifications/{id}/read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      description: Mark a specific notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Notification ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Notification marked as read
+        '404':
+          description: Notification not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserRegistrationRequest:
+      type: object
+      required:
+        - userName
+        - email
+        - password
+        - profileName
+      properties:
+        userName:
+          type: string
+          description: Unique username
+          example: "johndoe"
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "john.doe@example.com"
+        password:
+          type: string
+          format: password
+          description: User password
+          example: "SecurePassword123!"
+        profileName:
+          type: string
+          description: User's display name
+          example: "John Doe"
+
+    UserRegistrationResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "User registered successfully"
+        userId:
+          type: integer
+          format: int64
+          example: 1
+        email:
+          type: string
+          example: "john.doe@example.com"
+        userName:
+          type: string
+          example: "johndoe"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        password:
+          type: string
+          format: password
+          example: "SecurePassword123!"
+
+    LoginResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+          example: 1
+        username:
+          type: string
+          example: "johndoe"
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiJ9..."
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        userName:
+          type: string
+          example: "johndoe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        profileName:
+          type: string
+          example: "John Doe"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    CreatePostRequest:
+      type: object
+      required:
+        - content
+        - userId
+      properties:
+        content:
+          type: string
+          description: Post content
+          example: "This is my new post!"
+        userId:
+          type: integer
+          format: int64
+          description: ID of the user creating the post
+          example: 1
+
+    UpdatePostRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: Updated post content
+          example: "This is my updated post!"
+
+    CreateCommentRequest:
+      type: object
+      required:
+        - content
+        - userId
+      properties:
+        content:
+          type: string
+          description: Comment content
+          example: "Great post!"
+        userId:
+          type: integer
+          format: int64
+          description: ID of the user creating the comment
+          example: 1
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        content:
+          type: string
+          example: "This is a sample post"
+        likes:
+          type: integer
+          example: 5
+        userId:
+          type: integer
+          format: int64
+          example: 1
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        content:
+          type: string
+          example: "Great post!"
+        postId:
+          type: integer
+          format: int64
+          example: 1
+        userId:
+          type: integer
+          format: int64
+          example: 2
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:35:00Z"
+
+    FeedItem:
+      type: object
+      properties:
+        profileName:
+          type: string
+          example: "John Doe"
+        post:
+          $ref: '#/components/schemas/Post'
+        userId:
+          type: integer
+          format: int64
+          example: 1
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        type:
+          type: string
+          enum: [EMAIL, PUSH, SMS]
+          example: "EMAIL"
+        recipient:
+          type: string
+          example: "john.doe@example.com"
+        subject:
+          type: string
+          example: "New comment on your post"
+        content:
+          type: string
+          example: "Jane Smith commented on your post"
+        isRead:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    CreateNotificationRequest:
+      type: object
+      required:
+        - type
+        - recipient
+        - subject
+        - content
+      properties:
+        type:
+          type: string
+          enum: [EMAIL, PUSH, SMS]
+          example: "EMAIL"
+        recipient:
+          type: string
+          example: "john.doe@example.com"
+        subject:
+          type: string
+          example: "New message"
+        content:
+          type: string
+          example: "You have a new message"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Bad Request"
+        message:
+          type: string
+          example: "Invalid request data"
+        status:
+          type: integer
+          example: 400
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        path:
+          type: string
+          example: "/api/users"
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User management operations
+  - name: Discussion
+    description: Posts and comments management
+  - name: Feed
+    description: Aggregated feed operations
+  - name: Notifications
+    description: Notification management

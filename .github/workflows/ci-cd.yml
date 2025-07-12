@@ -1,0 +1,275 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com
+  ECS_CLUSTER: chat-microservices-cluster
+  
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Test Microservices
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Test Discovery Server
+      run: |
+        cd discoveryserver
+        ./gradlew test
+        
+    - name: Test API Gateway
+      run: |
+        cd api-gateway
+        ./gradlew test
+        
+    - name: Test Users Service
+      run: |
+        cd users
+        ./gradlew test
+        
+    - name: Test Discussion Service
+      run: |
+        cd discussion
+        ./gradlew test
+        
+    - name: Test Feed Service
+      run: |
+        cd feed
+        ./gradlew test
+        
+    - name: Test Frontend
+      run: |
+        cd frontend
+        npm ci
+        npm test -- --coverage --watchAll=false
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: |
+          **/build/test-results/
+          **/build/reports/
+          frontend/coverage/
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    strategy:
+      matrix:
+        service: [discovery-server, api-gateway, users-service, discussion-service, feed-service, frontend]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      
+    - name: Set up JDK 17 (for Java services)
+      if: matrix.service != 'frontend'
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Set up Node.js (for frontend)
+      if: matrix.service == 'frontend'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: Build and push Discovery Server
+      if: matrix.service == 'discovery-server'
+      env:
+        ECR_REPOSITORY: chat-microservices/discovery-server
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        cd discoveryserver
+        ./gradlew build -x test
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+    - name: Build and push API Gateway
+      if: matrix.service == 'api-gateway'
+      env:
+        ECR_REPOSITORY: chat-microservices/api-gateway
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        cd api-gateway
+        ./gradlew build -x test
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+    - name: Build and push Users Service
+      if: matrix.service == 'users-service'
+      env:
+        ECR_REPOSITORY: chat-microservices/users-service
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        cd users
+        ./gradlew build -x test
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+    - name: Build and push Discussion Service
+      if: matrix.service == 'discussion-service'
+      env:
+        ECR_REPOSITORY: chat-microservices/discussion-service
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        cd discussion
+        ./gradlew build -x test
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+    - name: Build and push Feed Service
+      if: matrix.service == 'feed-service'
+      env:
+        ECR_REPOSITORY: chat-microservices/feed-service
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        cd feed
+        ./gradlew build -x test
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+    - name: Build and push Frontend
+      if: matrix.service == 'frontend'
+      env:
+        ECR_REPOSITORY: chat-microservices/frontend
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        cd frontend
+        npm ci
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Deploy to ECS - Discovery Server
+      run: |
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service discovery-server-service \
+          --force-new-deployment
+          
+    - name: Deploy to ECS - API Gateway
+      run: |
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service api-gateway-service \
+          --force-new-deployment
+          
+    - name: Deploy to ECS - Users Service
+      run: |
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service users-service \
+          --force-new-deployment
+          
+    - name: Deploy to ECS - Discussion Service
+      run: |
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service discussion-service \
+          --force-new-deployment
+          
+    - name: Deploy to ECS - Feed Service
+      run: |
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service feed-service \
+          --force-new-deployment
+          
+    - name: Deploy to ECS - Frontend
+      run: |
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service frontend-service \
+          --force-new-deployment
+          
+    - name: Wait for deployment to complete
+      run: |
+        aws ecs wait services-stable \
+          --cluster $ECS_CLUSTER \
+          --services discovery-server-service api-gateway-service users-service discussion-service feed-service frontend-service
+
+  notify:
+    needs: [test, build-and-push, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Notify deployment status
+      if: github.ref == 'refs/heads/main'
+      run: |
+        if [ "${{ needs.deploy.result }}" == "success" ]; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+          exit 1
+        fi
