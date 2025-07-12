@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # Test database
+  test-mysql:
+    image: mysql:8.0
+    container_name: test-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=testpassword
+      - MYSQL_DATABASE=test_chat_microservices
+      - MYSQL_USER=testuser
+      - MYSQL_PASSWORD=testpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - test-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Test Redis
+  test-redis:
+    image: redis:7.0-alpine
+    container_name: test-redis
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Test Discovery Server
+  test-discovery-server:
+    build:
+      context: ../discoveryserver
+      dockerfile: Dockerfile
+    container_name: test-discovery-server
+    ports:
+      - "8762:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=test
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Test Users Service
+  test-users-service:
+    build:
+      context: ../users
+      dockerfile: Dockerfile
+    container_name: test-users-service
+    depends_on:
+      test-mysql:
+        condition: service_healthy
+      test-discovery-server:
+        condition: service_healthy
+    environment:
+      - SPRING_PROFILES_ACTIVE=test
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://test-discovery-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://test-mysql:3306/test_chat_microservices
+      - SPRING_DATASOURCE_USERNAME=testuser
+      - SPRING_DATASOURCE_PASSWORD=testpass
+    ports:
+      - "8082:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Test API Gateway
+  test-api-gateway:
+    build:
+      context: ../api-gateway
+      dockerfile: Dockerfile
+    container_name: test-api-gateway
+    depends_on:
+      test-discovery-server:
+        condition: service_healthy
+      test-users-service:
+        condition: service_healthy
+    environment:
+      - SPRING_PROFILES_ACTIVE=test
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://test-discovery-server:8761/eureka/
+    ports:
+      - "8766:8765"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Newman for API testing
+  newman:
+    image: postman/newman:latest
+    container_name: test-newman
+    depends_on:
+      test-api-gateway:
+        condition: service_healthy
+    volumes:
+      - ./postman:/etc/newman
+    command: run chat-microservices.postman_collection.json -e test.postman_environment.json --reporters cli,json --reporter-json-export /etc/newman/results.json
+    profiles:
+      - api-tests
+
+  # K6 for performance testing
+  k6:
+    image: grafana/k6:latest
+    container_name: test-k6
+    depends_on:
+      test-api-gateway:
+        condition: service_healthy
+    volumes:
+      - ./k6:/scripts
+    command: run /scripts/load-test.js
+    profiles:
+      - performance-tests
+
+volumes:
+  test-mysql-data:
+
+networks:
+  default:
+    name: test-network
