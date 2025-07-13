@@ -1,0 +1,290 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for Chat Microservices ECS Cluster and Services'
+
+Parameters:
+  InfrastructureStackName:
+    Type: String
+    Default: 'chat-microservices-infrastructure'
+    Description: Name of the infrastructure stack
+  
+  DockerImageTag:
+    Type: String
+    Default: 'latest'
+    Description: Docker image tag to deploy
+
+Resources:
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: chat-microservices-cluster
+      CapacityProviders:
+        - FARGATE
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+
+  # CloudWatch Log Groups
+  DiscoveryServerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/chat-discovery-server
+      RetentionInDays: 7
+
+  UsersServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/chat-users-service
+      RetentionInDays: 7
+
+  DiscussionServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/chat-discussion-service
+      RetentionInDays: 7
+
+  FeedServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/chat-feed-service
+      RetentionInDays: 7
+
+  APIGatewayLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/chat-api-gateway
+      RetentionInDays: 7
+
+  FrontendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/chat-frontend
+      RetentionInDays: 7
+
+  # ECS Task Execution Role
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: ECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
+  # ECS Task Role
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ECSTaskRolePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - servicediscovery:*
+                  - route53:*
+                Resource: '*'
+
+  # Service Discovery Namespace
+  ServiceDiscoveryNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Name: chat-internal
+      Vpc: 
+        Fn::ImportValue: !Sub "${InfrastructureStackName}-VPC"
+
+  # Service Discovery Services
+  DiscoveryServerService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      Name: discovery-server
+      NamespaceId: !Ref ServiceDiscoveryNamespace
+      DnsConfig:
+        DnsRecords:
+          - Type: A
+            TTL: 60
+      HealthCheckCustomConfig:
+        FailureThreshold: 3
+
+  # Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: chat-microservices-alb
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - Fn::ImportValue: !Sub "${InfrastructureStackName}-PublicSubnet1"
+        - Fn::ImportValue: !Sub "${InfrastructureStackName}-PublicSubnet2"
+      SecurityGroups:
+        - Fn::ImportValue: !Sub "${InfrastructureStackName}-ALBSecurityGroup"
+      Tags:
+        - Key: Name
+          Value: chat-microservices-alb
+
+  # Target Groups
+  FrontendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: chat-frontend-tg
+      Port: 80
+      Protocol: HTTP
+      VpcId: 
+        Fn::ImportValue: !Sub "${InfrastructureStackName}-VPC"
+      TargetType: ip
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+
+  APIGatewayTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: chat-api-gateway-tg
+      Port: 8765
+      Protocol: HTTP
+      VpcId: 
+        Fn::ImportValue: !Sub "${InfrastructureStackName}-VPC"
+      TargetType: ip
+      HealthCheckPath: /actuator/health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+
+  # ALB Listeners
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref FrontendTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  # ALB Listener Rules
+  APIListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref APIGatewayTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /api/*
+            - /auth/*
+            - /feed/*
+            - /discussion/*
+      ListenerArn: !Ref ALBListener
+      Priority: 1
+
+  # ECS Task Definitions
+  DiscoveryServerTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: chat-discovery-server
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 256
+      Memory: 512
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      ContainerDefinitions:
+        - Name: discovery-server
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/chat-discovery-server:${DockerImageTag}"
+          PortMappings:
+            - ContainerPort: 8761
+              Protocol: tcp
+          Essential: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref DiscoveryServerLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Environment:
+            - Name: SPRING_PROFILES_ACTIVE
+              Value: aws
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:8761/actuator/health || exit 1
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 60
+
+  # ECS Services
+  DiscoveryServerService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: discovery-server
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref DiscoveryServerTaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - Fn::ImportValue: !Sub "${InfrastructureStackName}-ECSSecurityGroup"
+          Subnets:
+            - Fn::ImportValue: !Sub "${InfrastructureStackName}-PrivateSubnet1"
+            - Fn::ImportValue: !Sub "${InfrastructureStackName}-PrivateSubnet2"
+      ServiceRegistries:
+        - RegistryArn: !GetAtt DiscoveryServerService.Arn
+
+Outputs:
+  ECSCluster:
+    Description: ECS Cluster Name
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub "${AWS::StackName}-ECSCluster"
+
+  ApplicationLoadBalancer:
+    Description: Application Load Balancer ARN
+    Value: !Ref ApplicationLoadBalancer
+    Export:
+      Name: !Sub "${AWS::StackName}-ALB"
+
+  LoadBalancerDNS:
+    Description: Load Balancer DNS Name
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub "${AWS::StackName}-LoadBalancerDNS"
+
+  ServiceDiscoveryNamespace:
+    Description: Service Discovery Namespace
+    Value: !Ref ServiceDiscoveryNamespace
+    Export:
+      Name: !Sub "${AWS::StackName}-ServiceDiscoveryNamespace"

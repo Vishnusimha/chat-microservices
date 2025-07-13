@@ -382,13 +382,83 @@ curl -H "Authorization: Bearer <your-jwt-token>" \
 - [ ] Add integration tests
 - [ ] Implement user roles and permissions
 - [ ] Add rate limiting
-- [ ] Container deployment with Docker
+- [x] Container deployment with Docker
+- [x] AWS deployment with ECS Fargate
+- [x] CI/CD pipeline with GitHub Actions
 
 ### Monitoring & Observability
 - [ ] Centralized logging with ELK stack
 - [ ] Metrics collection with Micrometer
 - [ ] Health checks and alerts
 - [ ] Distributed tracing
+
+## 🚀 AWS Deployment
+
+This project now includes complete AWS deployment support with:
+
+### Features
+- **Containerized Services**: All microservices are containerized with Docker
+- **AWS ECS Fargate**: Container orchestration on AWS
+- **CI/CD Pipeline**: GitHub Actions for automated deployment
+- **Load Balancing**: Application Load Balancer with health checks
+- **Service Discovery**: Internal service communication
+- **Infrastructure as Code**: CloudFormation templates
+- **Auto-scaling**: ECS service auto-scaling capabilities
+
+### Quick Start
+1. **Set up AWS resources**:
+   ```bash
+   ./setup-ecr.sh us-east-1
+   ```
+
+2. **Configure GitHub secrets**:
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+   - `AWS_ACCOUNT_ID`
+
+3. **Deploy infrastructure**:
+   ```bash
+   aws cloudformation deploy \
+     --template-file aws/cloudformation/infrastructure.yaml \
+     --stack-name chat-microservices-infrastructure \
+     --capabilities CAPABILITY_IAM \
+     --region us-east-1
+   ```
+
+4. **Deploy services**:
+   ```bash
+   git push origin main  # Triggers CI/CD pipeline
+   ```
+
+5. **Check deployment status**:
+   ```bash
+   ./check-deployment.sh us-east-1
+   ```
+
+### Architecture
+- **VPC**: Isolated network with public/private subnets
+- **ECS Fargate**: Serverless container platform
+- **Application Load Balancer**: Routes traffic to services
+- **ECR**: Container image registry
+- **CloudWatch**: Logging and monitoring
+- **Service Discovery**: Internal DNS resolution
+
+### Documentation
+- [Complete AWS Deployment Guide](AWS-DEPLOYMENT.md)
+- [Infrastructure Templates](aws/cloudformation/)
+- [CI/CD Pipeline](.github/workflows/deploy.yml)
+
+### Local Development
+You can still run the system locally using Docker Compose:
+```bash
+docker-compose up --build
+```
+
+### Monitoring
+- **CloudWatch Logs**: Centralized logging
+- **Health Checks**: Load balancer health monitoring
+- **Metrics**: ECS and application metrics
+- **Alarms**: Automated alerting (configurable)
 
 ---
 

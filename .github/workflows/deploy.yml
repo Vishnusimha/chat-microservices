@@ -1,0 +1,249 @@
+name: Deploy Chat Microservices to AWS
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [discoveryserver, api-gateway, users, discussion, feed]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Build and test ${{ matrix.service }}
+      run: |
+        cd ${{ matrix.service }}
+        ./gradlew build test --no-daemon
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.service }}
+        path: ${{ matrix.service }}/build/test-results/
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/dist/
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: [build-and-test, build-frontend]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Build and push Discovery Server
+      run: |
+        cd discoveryserver
+        ./gradlew build -x test
+        docker build -t $ECR_REGISTRY/chat-discovery-server:$GITHUB_SHA .
+        docker push $ECR_REGISTRY/chat-discovery-server:$GITHUB_SHA
+        docker tag $ECR_REGISTRY/chat-discovery-server:$GITHUB_SHA $ECR_REGISTRY/chat-discovery-server:latest
+        docker push $ECR_REGISTRY/chat-discovery-server:latest
+
+    - name: Build and push API Gateway
+      run: |
+        cd api-gateway
+        ./gradlew build -x test
+        docker build -t $ECR_REGISTRY/chat-api-gateway:$GITHUB_SHA .
+        docker push $ECR_REGISTRY/chat-api-gateway:$GITHUB_SHA
+        docker tag $ECR_REGISTRY/chat-api-gateway:$GITHUB_SHA $ECR_REGISTRY/chat-api-gateway:latest
+        docker push $ECR_REGISTRY/chat-api-gateway:latest
+
+    - name: Build and push Users Service
+      run: |
+        cd users
+        ./gradlew build -x test
+        docker build -t $ECR_REGISTRY/chat-users-service:$GITHUB_SHA .
+        docker push $ECR_REGISTRY/chat-users-service:$GITHUB_SHA
+        docker tag $ECR_REGISTRY/chat-users-service:$GITHUB_SHA $ECR_REGISTRY/chat-users-service:latest
+        docker push $ECR_REGISTRY/chat-users-service:latest
+
+    - name: Build and push Discussion Service
+      run: |
+        cd discussion
+        ./gradlew build -x test
+        docker build -t $ECR_REGISTRY/chat-discussion-service:$GITHUB_SHA .
+        docker push $ECR_REGISTRY/chat-discussion-service:$GITHUB_SHA
+        docker tag $ECR_REGISTRY/chat-discussion-service:$GITHUB_SHA $ECR_REGISTRY/chat-discussion-service:latest
+        docker push $ECR_REGISTRY/chat-discussion-service:latest
+
+    - name: Build and push Feed Service
+      run: |
+        cd feed
+        ./gradlew build -x test
+        docker build -t $ECR_REGISTRY/chat-feed-service:$GITHUB_SHA .
+        docker push $ECR_REGISTRY/chat-feed-service:$GITHUB_SHA
+        docker tag $ECR_REGISTRY/chat-feed-service:$GITHUB_SHA $ECR_REGISTRY/chat-feed-service:latest
+        docker push $ECR_REGISTRY/chat-feed-service:latest
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Build and push Frontend
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+        docker build -t $ECR_REGISTRY/chat-frontend:$GITHUB_SHA .
+        docker push $ECR_REGISTRY/chat-frontend:$GITHUB_SHA
+        docker tag $ECR_REGISTRY/chat-frontend:$GITHUB_SHA $ECR_REGISTRY/chat-frontend:latest
+        docker push $ECR_REGISTRY/chat-frontend:latest
+
+    - name: Deploy infrastructure
+      run: |
+        # Deploy infrastructure stack
+        aws cloudformation deploy \
+          --template-file aws/cloudformation/infrastructure.yaml \
+          --stack-name chat-microservices-infrastructure \
+          --capabilities CAPABILITY_IAM \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Deploy ECS cluster and services
+      run: |
+        # Deploy ECS cluster stack
+        aws cloudformation deploy \
+          --template-file aws/cloudformation/ecs-cluster.yaml \
+          --stack-name chat-microservices-ecs \
+          --capabilities CAPABILITY_IAM \
+          --parameter-overrides DockerImageTag=$GITHUB_SHA \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Update ECS services
+      run: |
+        # Update ECS services with new images
+        aws ecs update-service \
+          --cluster chat-microservices-cluster \
+          --service discovery-server \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+
+        aws ecs update-service \
+          --cluster chat-microservices-cluster \
+          --service api-gateway \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+
+        aws ecs update-service \
+          --cluster chat-microservices-cluster \
+          --service users-service \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+
+        aws ecs update-service \
+          --cluster chat-microservices-cluster \
+          --service discussion-service \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+
+        aws ecs update-service \
+          --cluster chat-microservices-cluster \
+          --service feed-service \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+
+        aws ecs update-service \
+          --cluster chat-microservices-cluster \
+          --service frontend \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Get deployment URL
+      run: |
+        LOAD_BALANCER_DNS=$(aws cloudformation describe-stacks \
+          --stack-name chat-microservices-ecs \
+          --query 'Stacks[0].Outputs[?OutputKey==`LoadBalancerDNS`].OutputValue' \
+          --output text \
+          --region ${{ env.AWS_REGION }})
+        
+        echo "🚀 Deployment complete!"
+        echo "📱 Frontend URL: http://$LOAD_BALANCER_DNS"
+        echo "🔗 API Gateway URL: http://$LOAD_BALANCER_DNS/api"
+        echo "📊 Eureka Dashboard: http://$LOAD_BALANCER_DNS:8761"
