@@ -28,22 +28,6 @@ const Feed = () => {
     { value: "appreciation", label: "Appreciation", color: "#d69e2e", emoji: "👏" },
   ];
 
-  // Auto-load feed when component mounts
-  useEffect(() => {
-    if (token) {
-      handleFetchFeed();
-    }
-  }, [token]);
-
-  // Clear results after 5 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPostResult("");
-      setCommentResult("");
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [postResult, commentResult]);
-
   const handleFetchFeed = useCallback(async () => {
     setIsLoading(true);
     setFeedResult("Loading feed...");
@@ -98,6 +82,22 @@ const Feed = () => {
       setIsLoading(false);
     }
   }, [token, user?.userId]);
+
+  // Auto-load feed when component mounts
+  useEffect(() => {
+    if (token) {
+      handleFetchFeed();
+    }
+  }, [token, handleFetchFeed]);
+
+  // Clear results after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPostResult("");
+      setCommentResult("");
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [postResult, commentResult]);
 
   const handleCreatePost = async (e) => {
     e.preventDefault();

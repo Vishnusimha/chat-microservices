@@ -25,10 +25,6 @@ const Journal = () => {
     { value: 'calm', emoji: '😌', label: 'Calm', color: '#38b2ac' },
   ];
 
-  useEffect(() => {
-    loadJournalData();
-  }, [loadJournalData]);
-
   const loadJournalData = useCallback(() => {
     // Load from localStorage for now (in real app, this would be from backend)
     const savedEntries = localStorage.getItem(`journal_${user?.userId}`);
@@ -42,6 +38,10 @@ const Journal = () => {
       setGoals(JSON.parse(savedGoals));
     }
   }, [user?.userId]);
+
+  useEffect(() => {
+    loadJournalData();
+  }, [loadJournalData]);
 
   const saveJournalData = (entries, goals) => {
     localStorage.setItem(`journal_${user?.userId}`, JSON.stringify(entries));

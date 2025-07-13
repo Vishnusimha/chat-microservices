@@ -32,11 +32,7 @@ const Settings = () => (
   </div>
 );
 
-// Protected Route component
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? children : <Login />;
-};
+// Protected Route component (removed unused component)
 
 // Main App Layout
 const AppLayout = () => {
