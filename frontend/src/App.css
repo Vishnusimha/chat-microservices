@@ -1,4 +1,42 @@
-/* Modern Chat App Styling */
+/* Enhanced Modern Chat App Styling with Dark Theme */
+:root {
+  /* Light theme colors */
+  --bg-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --bg-secondary: rgba(255, 255, 255, 0.95);
+  --bg-tertiary: rgba(255, 255, 255, 0.8);
+  --text-primary: #2d3748;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border-color: rgba(0, 0, 0, 0.1);
+  --shadow-primary: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-secondary: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --accent-primary: #667eea;
+  --accent-secondary: #764ba2;
+  --success: #48bb78;
+  --warning: #ed8936;
+  --error: #e53e3e;
+  --info: #38b2ac;
+}
+
+[data-theme="dark"] {
+  /* Dark theme colors */
+  --bg-primary: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  --bg-secondary: rgba(26, 32, 44, 0.95);
+  --bg-tertiary: rgba(45, 55, 72, 0.8);
+  --text-primary: #f7fafc;
+  --text-secondary: #e2e8f0;
+  --text-muted: #a0aec0;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --shadow-primary: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-secondary: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --accent-primary: #7c3aed;
+  --accent-secondary: #8b5cf6;
+  --success: #48bb78;
+  --warning: #ed8936;
+  --error: #fc8181;
+  --info: #63b3ed;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -8,9 +46,10 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
     Ubuntu, Cantarell, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--bg-primary);
   min-height: 100vh;
-  color: #333;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 .app-container {
