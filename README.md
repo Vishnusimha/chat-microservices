@@ -1,6 +1,58 @@
 # Chat Microservices: Complete Architecture & Communication Guide
 
-A Spring Cloud-based microservices architecture for a chat/social media application with JWT authentication, service discovery, and API Gateway routing.
+A Spring Cloud-based microservices architecture for a chat/social media application with JWT authentication, service discovery, API Gateway routing, and React frontend.
+
+## 🛠️ Technologies & Concepts
+
+### **Backend Technologies:**
+- **Java 17+** - Core programming language
+- **Spring Boot** - Microservices framework
+- **Spring Cloud Gateway** - API Gateway and routing
+- **Spring Cloud Netflix Eureka** - Service discovery and registration
+- **Spring Data JPA** - Data persistence layer
+- **Spring Security** - Authentication and authorization
+- **Spring Web** - RESTful web services
+- **Spring Validation** - Input validation
+- **JWT (JSON Web Tokens)** - Stateless authentication
+- **H2 Database** - In-memory database for development
+- **MySQL** - Production database option
+- **Gradle** - Build automation tool
+- **Jackson** - JSON processing
+- **Lombok** - Code generation library
+
+### **Frontend Technologies:**
+- **React 19.1.0** - UI framework
+- **JavaScript (ES6+)** - Programming language
+- **HTML5 & CSS3** - Markup and styling
+- **Fetch API** - HTTP client for backend communication
+- **Node.js & NPM** - Package management and runtime
+
+### **Architecture Patterns & Concepts:**
+- **Microservices Architecture** - Distributed system design
+- **Service Discovery** - Dynamic service location
+- **API Gateway Pattern** - Single entry point
+- **Circuit Breaker Pattern** - Fault tolerance (Resilience4j)
+- **Load Balancing** - Request distribution
+- **JWT Authentication** - Stateless security
+- **RESTful API Design** - HTTP-based services
+- **Domain-Driven Design** - Service boundaries
+- **CORS (Cross-Origin Resource Sharing)** - Frontend-backend communication
+- **Health Checks** - Service monitoring
+
+### **DevOps & Tools:**
+- **Spring Boot Actuator** - Application monitoring
+- **Eureka Dashboard** - Service registry visualization
+- **Gradle Wrapper** - Build consistency
+- **Git** - Version control
+- **IntelliJ IDEA / VS Code** - Development environments
+
+### **Testing:**
+- **JUnit 5** - Unit testing framework
+- **Mockito** - Mocking framework
+- **Spring Boot Test** - Integration testing
+- **MockMvc** - Web layer testing
+
+---
 
 ## 🏗️ Microservices Overview
 
@@ -10,7 +62,8 @@ A Spring Cloud-based microservices architecture for a chat/social media applicat
 | **api-gateway**     | 8765 | Single entry point, JWT validation, routing          | N/A      |
 | **users**           | 8081 | User management, authentication, JWT generation      | H2/MySQL |
 | **feed**            | 8080 | Aggregates user and post data for personalized feeds | N/A      |
-| **discussion**      | 8083 | Posts and comments management                        | H2/MySQL |
+| **discussion**      | 8083 | Posts, comments, and likes management                | H2/MySQL |
+| **frontend**        | 3000 | React-based web application UI                       | N/A      |
 
 ---
 
@@ -24,12 +77,12 @@ A Spring Cloud-based microservices architecture for a chat/social media applicat
 
 ### Current Communication Flow
 ```plaintext
-[Client] --> [API Gateway:8765] 
-                |
-                ├── /feed/** --> [Feed Service:8080] ──┐
-                ├── /api/users/** --> [Users Service:8081] ←──┼── Direct calls via Eureka
-                └── /discussion/** --> [Discussion Service:8083] ←──┘
-                    (strips /discussion prefix)
+[Client/Frontend:3000] --> [API Gateway:8765] 
+                              |
+                              ├── /feed/** --> [Feed Service:8080] ──┐
+                              ├── /api/users/** --> [Users Service:8081] ←──┼── Direct calls via Eureka
+                              └── /discussion/** --> [Discussion Service:8083] ←──┘
+                                  (strips /discussion prefix)
 ```
 
 ### Internal Service Communication (Feed Service)
@@ -142,15 +195,20 @@ public class RouteConfig {
 
 ### 💬 Discussion Service APIs
 
-| Endpoint                                 | Method | Description       | Example URL                                            |
-| ---------------------------------------- | ------ | ----------------- | ------------------------------------------------------ |
-| `/discussion/api/posts/create`           | POST   | Create new post   | `http://localhost:8765/discussion/api/posts/create`    |
-| `/discussion/api/posts/{postId}/update`  | PUT    | Update post       | `http://localhost:8765/discussion/api/posts/1/update`  |
-| `/discussion/api/posts/{postId}`         | GET    | Get post by ID    | `http://localhost:8765/discussion/api/posts/1`         |
-| `/discussion/api/posts/userId/{userId}`  | GET    | Get posts by user | `http://localhost:8765/discussion/api/posts/userId/1`  |
-| `/discussion/api/posts/all`              | GET    | Get all posts     | `http://localhost:8765/discussion/api/posts/all`       |
-| `/discussion/api/posts/{postId}`         | DELETE | Delete post       | `http://localhost:8765/discussion/api/posts/1`         |
-| `/discussion/api/posts/{postId}/comment` | POST   | Add comment       | `http://localhost:8765/discussion/api/posts/1/comment` |
+| Endpoint                                             | Method | Description       | Example URL                                              |
+| ---------------------------------------------------- | ------ | ----------------- | -------------------------------------------------------- |
+| `/discussion/api/posts/create`                       | POST   | Create new post   | `http://localhost:8765/discussion/api/posts/create`      |
+| `/discussion/api/posts/{postId}/update`              | PUT    | Update post       | `http://localhost:8765/discussion/api/posts/1/update`    |
+| `/discussion/api/posts/{postId}`                     | GET    | Get post by ID    | `http://localhost:8765/discussion/api/posts/1`           |
+| `/discussion/api/posts/userId/{userId}`              | GET    | Get posts by user | `http://localhost:8765/discussion/api/posts/userId/1`    |
+| `/discussion/api/posts/all`                          | GET    | Get all posts     | `http://localhost:8765/discussion/api/posts/all`         |
+| `/discussion/api/posts/{postId}`                     | DELETE | Delete post       | `http://localhost:8765/discussion/api/posts/1`           |
+| `/discussion/api/posts/{postId}/comment`             | POST   | Add comment       | `http://localhost:8765/discussion/api/posts/1/comment`   |
+| `/discussion/api/posts/{postId}/comment/{commentId}` | DELETE | Delete comment    | `http://localhost:8765/discussion/api/posts/1/comment/2` |
+| `/discussion/api/posts/{postId}/like`                | POST   | Add like to post  | `http://localhost:8765/discussion/api/posts/1/like`      |
+| `/discussion/api/posts/{postId}/like`                | DELETE | Remove like       | `http://localhost:8765/discussion/api/posts/1/like`      |
+| `/discussion/hello`                                  | GET    | Test endpoint     | `http://localhost:8765/discussion/hello?name=World`      |
+| `/discussion/actuator/health`                        | GET    | Health check      | `http://localhost:8765/discussion/actuator/health`       |
 
 #### Create Post Example
 **POST** `/discussion/api/posts/create`
@@ -165,18 +223,59 @@ public class RouteConfig {
 {
   "id": 10,
   "content": "This is my new post!",
-  "likes": null,
+  "likes": 0,
   "comments": [],
+  "userId": 1,
+  "likedBy": []
+}
+```
+
+#### Like/Unlike Post Examples
+**POST** `/discussion/api/posts/{postId}/like`
+```json
+{
   "userId": 1
+}
+```
+**Response:**
+```json
+{
+  "likes": 5,
+  "message": "Like added successfully"
+}
+```
+
+**DELETE** `/discussion/api/posts/{postId}/like`
+```json
+{
+  "userId": 1
+}
+```
+**Response:**
+```json
+{
+  "likes": 4,
+  "message": "Like removed successfully"
 }
 ```
 
 ### 📰 Feed Service APIs
 
-| Endpoint                | Method | Description         | Example URL                               |
-| ----------------------- | ------ | ------------------- | ----------------------------------------- |
-| `/feed/all`             | GET    | Get aggregated feed | `http://localhost:8765/feed/all`          |
-| `/feed/user/{userName}` | GET    | Get user's feed     | `http://localhost:8765/feed/user/johndoe` |
+| Endpoint                | Method | Description          | Example URL                                  |
+| ----------------------- | ------ | -------------------- | -------------------------------------------- |
+| `/feed/all`             | GET    | Get aggregated feed  | `http://localhost:8765/feed/all`             |
+| `/feed/user/{userName}` | GET    | Get user's feed      | `http://localhost:8765/feed/user/johndoe`    |
+| `/feed/hello`           | GET    | Test endpoint        | `http://localhost:8765/feed/hello`           |
+| `/feed/test`            | GET    | Circuit breaker test | `http://localhost:8765/feed/test?fail=false` |
+
+### 🔧 Additional Test Endpoints
+
+| Service    | Endpoint           | Method | Description       | Example URL                                         |
+| ---------- | ------------------ | ------ | ----------------- | --------------------------------------------------- |
+| Gateway    | `/test`            | GET    | API Gateway test  | `http://localhost:8765/test`                        |
+| Gateway    | `/actuator/health` | GET    | Gateway health    | `http://localhost:8765/actuator/health`             |
+| Discussion | `/hello`           | GET    | Discussion test   | `http://localhost:8765/discussion/hello?name=World` |
+| Discussion | `/actuator/health` | GET    | Discussion health | `http://localhost:8765/discussion/actuator/health`  |
 
 #### Feed Response Example
 **GET** `/feed/all`
@@ -235,9 +334,17 @@ cd api-gateway
 ./gradlew bootRun
 ```
 
+6. **Frontend** (Port 3000)
+```bash
+cd frontend
+npm install
+npm start
+```
+
 ### Verify Services
 - **Eureka Dashboard**: http://localhost:8761
 - **API Gateway Health**: http://localhost:8765/actuator/health
+- **Frontend Application**: http://localhost:3000
 
 ---
 
@@ -267,7 +374,22 @@ curl -X POST http://localhost:8765/discussion/api/posts/create \
   -d '{"content": "My new post!", "userId": 1}'
 ```
 
-### 4. Verify New Post in Feed
+### 4. Test Like/Unlike Functionality
+```bash
+# Add like to a post (requires JWT)
+curl -X POST http://localhost:8765/discussion/api/posts/1/like \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -d '{"userId": 1}'
+
+# Remove like from a post (requires JWT)
+curl -X DELETE http://localhost:8765/discussion/api/posts/1/like \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -d '{"userId": 1}'
+```
+
+### 5. Verify New Post in Feed
 ```bash
 # Check if new post appears in feed
 curl -H "Authorization: Bearer <your-jwt-token>" \
@@ -310,9 +432,9 @@ curl -H "Authorization: Bearer <your-jwt-token>" \
 - **Dependencies**: Spring Security, Spring Data JPA
 
 ### Discussion Service  
-- **Purpose**: Posts and comments management
+- **Purpose**: Posts, comments, and likes management
 - **Database**: H2 (dev) / MySQL (prod)
-- **Key Features**: Post CRUD, comment system, likes
+- **Key Features**: Post CRUD, comment system, likes functionality
 - **Dependencies**: Spring Data JPA, Validation
 
 ### Feed Service
@@ -330,6 +452,13 @@ curl -H "Authorization: Bearer <your-jwt-token>" \
 - **Purpose**: Service registration and discovery
 - **Key Features**: Eureka server, service health monitoring
 - **Dependencies**: Spring Cloud Netflix Eureka
+
+### Frontend
+- **Purpose**: React-based web application interface
+- **Port**: 3000
+- **Key Features**: User registration, login, feed viewing, post creation, commenting, likes
+- **Dependencies**: React, Fetch API for backend communication
+- **Base API URL**: http://localhost:8765 (API Gateway)
 
 ---
 
@@ -362,13 +491,14 @@ curl -H "Authorization: Bearer <your-jwt-token>" \
 
 ## 📊 Service Status
 
-| Service            | Status    | Eureka Registration | Key Features Working    |
-| ------------------ | --------- | ------------------- | ----------------------- |
-| Discovery Server   | ✅ Running | N/A                 | Service discovery       |
-| API Gateway        | ✅ Running | ✅ Registered        | Routing, JWT validation |
-| Users Service      | ✅ Running | ✅ Registered        | Auth, user management   |
-| Discussion Service | ✅ Running | ✅ Registered        | Posts, comments         |
-| Feed Service       | ✅ Running | ✅ Registered        | Data aggregation        |
+| Service            | Status    | Eureka Registration | Key Features Working     |
+| ------------------ | --------- | ------------------- | ------------------------ |
+| Discovery Server   | ✅ Running | N/A                 | Service discovery        |
+| API Gateway        | ✅ Running | ✅ Registered        | Routing, JWT validation  |
+| Users Service      | ✅ Running | ✅ Registered        | Auth, user management    |
+| Discussion Service | ✅ Running | ✅ Registered        | Posts, comments, likes   |
+| Feed Service       | ✅ Running | ✅ Registered        | Data aggregation         |
+| Frontend           | ✅ Running | N/A                 | UI, authentication, CRUD |
 
 ---
 
@@ -534,6 +664,8 @@ http://localhost:8765/
 | `/api/posts/{postId}`                     | DELETE | Delete post by ID           | `http://localhost:8765/api/posts/1`           |
 | `/api/posts/{postId}/comment`             | POST   | Add comment to post         | `http://localhost:8765/api/posts/1/comment`   |
 | `/api/posts/{postId}/comment/{commentId}` | DELETE | Delete comment from post    | `http://localhost:8765/api/posts/1/comment/2` |
+| `/api/posts/{postId}/like`                | POST   | Add like to post            | `http://localhost:8765/api/posts/1/like`      |
+| `/api/posts/{postId}/like`                | DELETE | Remove like from post       | `http://localhost:8765/api/posts/1/like`      |
 | `/hello`                                  | GET    | Sample hello endpoint       | `http://localhost:8765/hello?name=World`      |
 
 ---
@@ -558,20 +690,29 @@ http://localhost:8765/
 
 ---
 
-## Summary Diagram
+## 📈 Complete System Architecture
 
 ```plaintext
-[Client/Postman/Frontend]
-      |
-      v
-[API Gateway]
-   |     |     |
-   v     v     v
-[Feed] [Users] [Discussion]
-   ^     |      ^
-   |     v      |
-   +-----+------+
+[Frontend:3000] --> [API Gateway:8765]
+                         |     |     |
+                         v     v     v
+                    [Feed] [Users] [Discussion]
+                       ^     |      ^
+                       |     v      |
+                       +-----+------+
+                            ^
+                            |
+                    [Discovery Server:8761]
 ```
+
+---
+
+**Architecture Overview:**
+- **Frontend**: React application providing user interface
+- **API Gateway**: Single entry point with JWT authentication and routing
+- **Microservices**: Independent services communicating via Eureka service discovery
+- **Service Discovery**: Eureka server for dynamic service location
+- **Database**: H2 for development, configurable for production MySQL
 
 ---
 
@@ -716,6 +857,10 @@ your current chat-microservices architecture:
 - `/api/posts/{postId}` (DELETE): Delete post by ID.
 - `/api/posts/{postId}/comment` (POST): Add comment to post.
 - `/api/posts/{postId}/comment/{commentId}` (DELETE): Delete comment from post.
+- `/api/posts/{postId}/like` (POST): Add like to post.
+- `/api/posts/{postId}/like` (DELETE): Remove like from post.
+- `/hello` (GET): Test endpoint.
+- `/actuator/health` (GET): Health check endpoint.
 
 ---
 
@@ -773,5 +918,8 @@ flowchart TD
 
 ---
 
-If you want a **deep dive into any specific endpoint, service, or want more sample requests/responses**, just tell me
-which one!
+**If you want a deep dive into any specific endpoint, service, or want more sample requests/responses, refer to the detailed sections above or check individual service logs.**
+
+---
+
+**🎉 The system is fully functional with React frontend, comprehensive microservices communication, working API Gateway routing, persistent likes functionality, and real data aggregation!**
