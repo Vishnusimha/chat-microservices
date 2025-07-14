@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { FiHeart, FiMessageCircle, FiMoreHorizontal, FiPlus, FiRefreshCw } from "react-icons/fi";
 
 const API_BASE = "http://localhost:8765";
 
@@ -23,9 +22,19 @@ const Feed = () => {
     { value: "general", label: "General", color: "#667eea", emoji: "💬" },
     { value: "complaint", label: "Complaint", color: "#e53e3e", emoji: "⚠️" },
     { value: "suggestion", label: "Suggestion", color: "#48bb78", emoji: "💡" },
-    { value: "announcement", label: "Announcement", color: "#ed8936", emoji: "📢" },
+    {
+      value: "announcement",
+      label: "Announcement",
+      color: "#ed8936",
+      emoji: "📢",
+    },
     { value: "question", label: "Question", color: "#38b2ac", emoji: "❓" },
-    { value: "appreciation", label: "Appreciation", color: "#d69e2e", emoji: "👏" },
+    {
+      value: "appreciation",
+      label: "Appreciation",
+      color: "#d69e2e",
+      emoji: "👏",
+    },
   ];
 
   const handleFetchFeed = useCallback(async () => {
@@ -47,10 +56,12 @@ const Feed = () => {
         data.forEach((item) => {
           const postId = item.post?.id || item.id;
           const post = item.post || item;
-          const likeCount = post.likes || post.likesCount || post.likeCount || 0;
+          const likeCount =
+            post.likes || post.likesCount || post.likeCount || 0;
           initialLikeCounts[postId] = likeCount;
 
-          const likedBy = post.likedBy || post.likedByUsers || post.userLikes || [];
+          const likedBy =
+            post.likedBy || post.likedByUsers || post.userLikes || [];
           let userHasLiked = false;
           if (Array.isArray(likedBy)) {
             userHasLiked = likedBy.some((like) => {
@@ -117,11 +128,11 @@ const Feed = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ 
-          content: postContent, 
+        body: JSON.stringify({
+          content: postContent,
           userId: user.userId,
           category: postCategory,
-          isAnonymous: isAnonymous
+          isAnonymous: isAnonymous,
         }),
       });
 
@@ -217,7 +228,10 @@ const Feed = () => {
           if (res.ok) {
             const responseData = await res.json();
             if (responseData && responseData.likes !== undefined) {
-              setLikeCounts((prev) => ({ ...prev, [postId]: responseData.likes }));
+              setLikeCounts((prev) => ({
+                ...prev,
+                [postId]: responseData.likes,
+              }));
             }
             break;
           }
@@ -250,7 +264,7 @@ const Feed = () => {
   };
 
   const getCategoryData = (category) => {
-    return categories.find(cat => cat.value === category) || categories[0];
+    return categories.find((cat) => cat.value === category) || categories[0];
   };
 
   const getStatusClass = (message) => {
@@ -272,10 +286,10 @@ const Feed = () => {
       {/* Create Post Section */}
       <div className="create-post-section">
         <div className="create-post-header">
-          <FiPlus className="create-icon" />
+          <span className="create-icon">➕</span>
           <h2>Share with Community</h2>
         </div>
-        
+
         <form onSubmit={handleCreatePost} className="create-post-form">
           <div className="form-row">
             <div className="form-group category-select">
@@ -292,7 +306,7 @@ const Feed = () => {
                 ))}
               </select>
             </div>
-            
+
             <div className="form-group anonymous-toggle">
               <label className="toggle-label">
                 <input
@@ -318,9 +332,12 @@ const Feed = () => {
             />
           </div>
 
-          <button type="submit" className="create-post-btn" disabled={!postContent.trim()}>
-            <FiPlus />
-            Share Post
+          <button
+            type="submit"
+            className="create-post-btn"
+            disabled={!postContent.trim()}
+          >
+            ➕ Share Post
           </button>
         </form>
 
@@ -335,12 +352,12 @@ const Feed = () => {
       <div className="feed-header">
         <h2 className="feed-title">Community Feed</h2>
         <div className="feed-actions">
-          <button 
-            className={`refresh-btn ${isLoading ? 'loading' : ''}`} 
+          <button
+            className={`refresh-btn ${isLoading ? "loading" : ""}`}
             onClick={handleFetchFeed}
             disabled={isLoading}
           >
-            <FiRefreshCw className={isLoading ? 'spinning' : ''} />
+            <span className={isLoading ? "spinning" : ""}>🔄</span>
             Refresh
           </button>
         </div>
@@ -367,27 +384,32 @@ const Feed = () => {
             const isLiked = likedPosts.has(postId);
             const likeCount = likeCounts[postId] || 0;
             const post = item.post || item;
-            const category = getCategoryData(post.category || 'general');
+            const category = getCategoryData(post.category || "general");
 
             return (
               <div key={i} className="post-card">
                 <div className="post-header">
-                  <div className="post-category" style={{ backgroundColor: category.color }}>
+                  <div
+                    className="post-category"
+                    style={{ backgroundColor: category.color }}
+                  >
                     <span className="category-emoji">{category.emoji}</span>
                     <span className="category-label">{category.label}</span>
                   </div>
-                  <button className="post-menu-btn">
-                    <FiMoreHorizontal />
-                  </button>
+                  <button className="post-menu-btn">⋯</button>
                 </div>
 
                 <div className="post-user-info">
                   <div className="post-avatar">
-                    {getInitials(post.isAnonymous ? "Anonymous" : item.profileName)}
+                    {getInitials(
+                      post.isAnonymous ? "Anonymous" : item.profileName
+                    )}
                   </div>
                   <div className="user-details">
                     <div className="post-username">
-                      {post.isAnonymous ? "Anonymous User" : (item.profileName || "Anonymous")}
+                      {post.isAnonymous
+                        ? "Anonymous User"
+                        : item.profileName || "Anonymous"}
                     </div>
                     <div className="post-userid">
                       {post.isAnonymous ? "Hidden" : `User ID: ${item.userId}`}
@@ -395,29 +417,29 @@ const Feed = () => {
                   </div>
                 </div>
 
-                <div className="post-content">
-                  {post.content}
-                </div>
+                <div className="post-content">{post.content}</div>
 
                 <div className="post-actions">
                   <button
-                    className={`action-btn like-btn ${isLiked ? "liked" : ""}`}
+                    className={`action-button ${isLiked ? "liked" : ""}`}
                     onClick={() => handleLike(postId)}
                   >
-                    <FiHeart className="action-icon" />
+                    <span className="action-icon">{isLiked ? "❤️" : "🤍"}</span>
                     <span className="action-text">
-                      {likeCount > 0 ? `${likeCount} Like${likeCount > 1 ? "s" : ""}` : "Like"}
+                      {likeCount > 0
+                        ? `${likeCount} Like${likeCount > 1 ? "s" : ""}`
+                        : "Like"}
                     </span>
                   </button>
 
                   <button
-                    className="action-btn comment-btn"
+                    className="action-button"
                     onClick={() => {
                       setCommentingPostId(postId);
                       setCommentContent("");
                     }}
                   >
-                    <FiMessageCircle className="action-icon" />
+                    <span className="action-icon">💬</span>
                     <span className="action-text">Comment</span>
                   </button>
                 </div>
@@ -425,13 +447,15 @@ const Feed = () => {
                 {post.comments && post.comments.length > 0 && (
                   <div className="comments-section">
                     <div className="comments-title">
-                      <FiMessageCircle className="comments-icon" />
+                      <span className="comments-icon">💬</span>
                       Comments ({post.comments.length})
                     </div>
                     {post.comments.map((comment, ci) => (
                       <div key={ci} className="comment-item">
                         <div className="comment-content">{comment.content}</div>
-                        <div className="comment-author">by user {comment.userId}</div>
+                        <div className="comment-author">
+                          by user {comment.userId}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -447,12 +471,12 @@ const Feed = () => {
                       onChange={(e) => setCommentContent(e.target.value)}
                       required
                     />
-                    <button type="submit" className="comment-submit-btn">
+                    <button type="submit" className="comment-button">
                       Post
                     </button>
                     <button
                       type="button"
-                      className="comment-cancel-btn"
+                      className="cancel-button"
                       onClick={() => setCommentingPostId(null)}
                     >
                       Cancel
