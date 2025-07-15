@@ -70,12 +70,49 @@ build_and_start() {
     docker compose up --build -d api-gateway
     echo "⏳ Waiting for API Gateway to be ready..."
     
-    # Wait for API Gateway to be healthy
+    # Wait for API Gateway to be healthy with timeout
+    TIMEOUT=180  # 3 minutes timeout
+    COUNTER=0
     while ! curl -f http://localhost:8765/actuator/health >/dev/null 2>&1; do
-        echo "  Waiting for API Gateway..."
+        if [ $COUNTER -ge $TIMEOUT ]; then
+            echo "⚠️  API Gateway timeout after ${TIMEOUT}s, but continuing..."
+            break
+        fi
+        echo "  Waiting for API Gateway... (${COUNTER}s)"
         sleep 5
+        COUNTER=$((COUNTER + 5))
     done
-    echo "✅ API Gateway is ready!"
+    
+    # Check if API Gateway is actually ready
+    if curl -f http://localhost:8765/actuator/health >/dev/null 2>&1; then
+        echo "✅ API Gateway is ready!"
+    else
+        echo "⚠️  API Gateway may still be starting, check logs with: docker compose logs api-gateway"
+    fi
+    
+    # Start Frontend
+    docker compose up --build -d frontend
+    echo "⏳ Waiting for Frontend to be ready..."
+    
+    # Wait for Frontend to be healthy
+    FRONTEND_TIMEOUT=60  # 1 minute timeout for frontend
+    FRONTEND_COUNTER=0
+    while ! curl -f http://localhost:3000 >/dev/null 2>&1; do
+        if [ $FRONTEND_COUNTER -ge $FRONTEND_TIMEOUT ]; then
+            echo "⚠️  Frontend timeout after ${FRONTEND_TIMEOUT}s, but continuing..."
+            break
+        fi
+        echo "  Waiting for Frontend... (${FRONTEND_COUNTER}s)"
+        sleep 5
+        FRONTEND_COUNTER=$((FRONTEND_COUNTER + 5))
+    done
+    
+    # Check if Frontend is actually ready
+    if curl -f http://localhost:3000 >/dev/null 2>&1; then
+        echo "✅ Frontend is ready!"
+    else
+        echo "⚠️  Frontend may still be starting, check logs with: docker compose logs frontend"
+    fi
     
     echo "✅ All services started!"
 }
@@ -87,15 +124,17 @@ show_status() {
     
     echo ""
     echo "🌐 Service URLs:"
+    echo "  - React Frontend: http://localhost:3000"
     echo "  - Eureka Dashboard: http://localhost:8761"
     echo "  - API Gateway: http://localhost:8765"
     echo "  - Users Service: http://localhost:8081"
     echo "  - Discussion Service: http://localhost:8083"
     echo "  - Feed Service: http://localhost:8080"
-    echo "  - MySQL: localhost:3306"
+    echo "  - MySQL: localhost:3307"
     
     echo ""
     echo "🔍 Health Checks:"
+    echo "  - React Frontend: http://localhost:3000"
     echo "  - Discovery Server: http://localhost:8761/actuator/health"
     echo "  - API Gateway: http://localhost:8765/actuator/health"
     echo "  - Users Service: http://localhost:8081/actuator/health"
@@ -106,6 +145,9 @@ show_status() {
 # Function to test services
 test_services() {
     echo "🧪 Testing services..."
+    
+    echo "Testing Frontend..."
+    curl -s http://localhost:3000 >/dev/null 2>&1 && echo "✅ Frontend is healthy" || echo "❌ Frontend is not healthy"
     
     echo "Testing Discovery Server..."
     curl -s http://localhost:8761/actuator/health | grep -q "UP" && echo "✅ Discovery Server is healthy" || echo "❌ Discovery Server is not healthy"
@@ -145,6 +187,8 @@ main() {
     
     echo ""
     echo "🎉 Chat Microservices are now running!"
+    echo "🌐 Frontend: http://localhost:3000"
+    echo "📊 Eureka Dashboard: http://localhost:8761"
     echo "📝 Use 'docker compose logs [service-name]' to view logs"
     echo "🛑 Use 'docker compose down' to stop all services"
 }
