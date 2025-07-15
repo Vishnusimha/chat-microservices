@@ -923,3 +923,5 @@ flowchart TD
 ---
 
 **🎉 The system is fully functional with React frontend, comprehensive microservices communication, working API Gateway routing, persistent likes functionality, and real data aggregation!**
+
+![SpringBootPath.gif](SpringBootPath.gif)
