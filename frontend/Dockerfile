@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies (need dev dependencies for build)
-RUN npm ci
+RUN npm install
 
 # Copy the source code
 COPY public/ public/
