@@ -68,41 +68,24 @@ build_and_start() {
     echo "✅ Feed service is ready!"
     
     docker compose up --build -d api-gateway
-    echo "⏳ Waiting for API Gateway to be ready..."
+    echo "✅ API Gateway started!"
     
-    # Wait for API Gateway to be healthy with timeout
-    TIMEOUT=180  # 3 minutes timeout
-    COUNTER=0
-    while ! curl -f http://localhost:8765/actuator/health >/dev/null 2>&1; do
-        if [ $COUNTER -ge $TIMEOUT ]; then
-            echo "⚠️  API Gateway timeout after ${TIMEOUT}s, but continuing..."
-            break
-        fi
-        echo "  Waiting for API Gateway... (${COUNTER}s)"
-        sleep 5
-        COUNTER=$((COUNTER + 5))
-    done
-    
-    # Check if API Gateway is actually ready
-    if curl -f http://localhost:8765/actuator/health >/dev/null 2>&1; then
-        echo "✅ API Gateway is ready!"
-    else
-        echo "⚠️  API Gateway may still be starting, check logs with: docker compose logs api-gateway"
-    fi
-    
-    # Start Frontend
+    # Start Frontend immediately (no need to wait for API Gateway health check)
     docker compose up --build -d frontend
     echo "⏳ Waiting for Frontend to be ready..."
     
     # Wait for Frontend to be healthy
-    FRONTEND_TIMEOUT=60  # 1 minute timeout for frontend
+    FRONTEND_TIMEOUT=45  # 45 seconds should be enough for frontend
     FRONTEND_COUNTER=0
     while ! curl -f http://localhost:3000 >/dev/null 2>&1; do
         if [ $FRONTEND_COUNTER -ge $FRONTEND_TIMEOUT ]; then
             echo "⚠️  Frontend timeout after ${FRONTEND_TIMEOUT}s, but continuing..."
+            echo "   Frontend container may still be building..."
             break
         fi
-        echo "  Waiting for Frontend... (${FRONTEND_COUNTER}s)"
+        if [ $((FRONTEND_COUNTER % 10)) -eq 0 ]; then
+            echo "  Waiting for Frontend... (${FRONTEND_COUNTER}s) - Building React app..."
+        fi
         sleep 5
         FRONTEND_COUNTER=$((FRONTEND_COUNTER + 5))
     done
@@ -111,7 +94,9 @@ build_and_start() {
     if curl -f http://localhost:3000 >/dev/null 2>&1; then
         echo "✅ Frontend is ready!"
     else
-        echo "⚠️  Frontend may still be starting, check logs with: docker compose logs frontend"
+        echo "⚠️  Frontend may still be starting..."
+        echo "   Check logs: docker compose logs frontend"
+        echo "   Check status: docker compose ps frontend"
     fi
     
     echo "✅ All services started!"
